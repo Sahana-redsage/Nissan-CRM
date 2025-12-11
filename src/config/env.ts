@@ -1,8 +1,26 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-export const config = {
-  port: process.env.PORT || 5000,
+interface Config {
+  port: number;
+  nodeEnv: string;
+  jwtSecret: string;
+  jwtExpiry: string;
+  frontendUrl: string;
+  gemini: {
+    apiKey: string;
+  };
+  r2: {
+    accountId: string;
+    accessKeyId: string;
+    secretAccessKey: string;
+    bucketName: string;
+    publicUrl: string;
+  };
+}
+
+export const config: Config = {
+  port: parseInt(process.env.PORT || '5000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
   jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
   jwtExpiry: process.env.JWT_EXPIRY || '7d',

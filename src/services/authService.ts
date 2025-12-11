@@ -30,8 +30,8 @@ export const authService = {
         email: telecaller.email,
         fullName: telecaller.fullName,
       },
-      config.jwtSecret,
-      { expiresIn: config.jwtExpiry }
+      config.jwtSecret as string,
+      { expiresIn: config.jwtExpiry } as jwt.SignOptions
     );
 
     return {
