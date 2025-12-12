@@ -9,6 +9,7 @@ import customerRoutes from './routes/customers';
 import documentRoutes from './routes/documents';
 import insightRoutes from './routes/insights';
 import callRoutes from './routes/calls';
+import dashboardRoutes from './routes/dashboard';
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/insights', insightRoutes);
 app.use('/api/calls', callRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Error handler
 app.use(errorHandler);
