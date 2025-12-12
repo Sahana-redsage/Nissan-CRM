@@ -143,4 +143,60 @@ export const insightController = {
       });
     }
   },
+
+  async uploadAndAnalyze(req: AuthRequest, res: Response) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'PDF file is required',
+        });
+      }
+
+      logger.info('Extracting text from uploaded PDF');
+      
+      // Extract text from the uploaded PDF buffer
+      const text = await pdfService.extractTextFromBuffer(req.file.buffer);
+
+      if (!text || text.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Failed to extract text from PDF or PDF is empty',
+        });
+      }
+
+      logger.info('Extracting customer details from PDF');
+      const customerDetails = await llmService.extractCustomerDetails(text);
+
+      logger.info('Generating insights using LLM for standalone analysis');
+      
+      // Generate insights with extracted customer context
+      const { insights, rawResponse } = await llmService.generateServiceInsights(
+        {
+          vehicleMake: customerDetails.vehicleMake || 'Unknown',
+          vehicleModel: customerDetails.vehicleModel || 'Unknown',
+          vehicleYear: customerDetails.vehicleYear,
+          totalMileage: customerDetails.totalMileage || 0,
+          lastServiceDate: customerDetails.lastServiceDate ? new Date(customerDetails.lastServiceDate) : undefined,
+        },
+        [text]
+      );
+
+      res.json({
+        success: true,
+        data: {
+          customerDetails,
+          insights,
+          generatedAt: new Date().toISOString(),
+          rawResponse,
+        },
+      });
+    } catch (error: any) {
+      logger.error('Error in upload and analyze:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to analyze document',
+      });
+    }
+  },
 };

@@ -11,6 +11,18 @@ interface VehicleData {
   lastServiceDate?: Date;
 }
 
+interface CustomerDetails {
+  customerName?: string;
+  vehicleMake?: string;
+  vehicleModel?: string;
+  vehicleYear?: number;
+  vehicleNumber?: string;
+  totalMileage?: number;
+  lastServiceDate?: string;
+  phoneNumber?: string;
+  email?: string;
+}
+
 interface ServiceInsights {
   priority_items: Array<{
     item: string;
@@ -118,5 +130,57 @@ Keep each section to 2-3 items max. Be concise. Use ₹ for costs.`;
     }
 
     return { insights, rawResponse };
+  },
+
+  async extractCustomerDetails(pdfText: string): Promise<CustomerDetails> {
+    const prompt = `Extract customer and vehicle details from this service document. Return ONLY valid JSON (NO markdown blocks, NO explanatory text):
+
+SERVICE DOCUMENT:
+${pdfText.substring(0, 2000)}
+
+Return this exact JSON structure:
+{
+  "customerName": "Full name or null",
+  "vehicleMake": "Make or null",
+  "vehicleModel": "Model or null", 
+  "vehicleYear": number or null,
+  "vehicleNumber": "Registration number or null",
+  "totalMileage": number or null,
+  "lastServiceDate": "YYYY-MM-DD or null",
+  "phoneNumber": "Phone or null",
+  "email": "Email or null"
+}
+
+If a field is not found, use null. Extract only what's clearly stated in the document.`;
+
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      generationConfig: {
+        temperature: 0.3,
+        topP: 0.95,
+        topK: 40,
+        maxOutputTokens: 1024,
+      },
+    });
+
+    const result = await model.generateContent(prompt);
+    let rawResponse = result.response.text();
+
+    // Clean up response
+    rawResponse = rawResponse
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim();
+
+    try {
+      return JSON.parse(rawResponse) as CustomerDetails;
+    } catch (error) {
+      const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]) as CustomerDetails;
+      }
+      console.error('Failed to parse customer details:', rawResponse);
+      return {};
+    }
   },
 };
