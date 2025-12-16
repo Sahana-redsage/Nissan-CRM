@@ -77,7 +77,7 @@ Keep each section to 2-3 items max. Be concise. Use ₹ for costs.`;
 
     // Use Gemini 2.5 Flash for fast, cost-effective generation
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       generationConfig: {
         temperature: 0.7,
         topP: 0.95,
@@ -154,7 +154,7 @@ Return this exact JSON structure:
 If a field is not found, use null. Extract only what's clearly stated in the document.`;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       generationConfig: {
         temperature: 0.3,
         topP: 0.95,
@@ -183,4 +183,78 @@ If a field is not found, use null. Extract only what's clearly stated in the doc
       return {};
     }
   },
+
+  async summarizeInsightsForEmail(insights: ServiceInsights, customerName: string): Promise<string> {
+    const prompt = `Write a short, hospitable email to a customer about their vehicle service insights.
+
+CUSTOMER: ${customerName || 'Valued Customer'}
+INSIGHTS: ${JSON.stringify(insights)}
+
+Instructions:
+1. Start with a warm greeting using the customer's name (e.g., "Dear [Name],").
+2. Write a concise (<50 words) body summarizing the key technical findings and the most urgent priority.
+3. Use professional automotive dealer terminology (e.g., "Recommended periodic maintenance").
+4. AVOID mentioning the vehicle's specific age (e.g. do NOT say "5-year old").
+5. End with a polite, professional sign-off (e.g., "Sincerely, Your Service Team").
+6. Tone: Warm, welcoming, and professional.
+7. Return HTML paragraph <p> for the body, but formatted as a full email (greeting <br> body <br> sign-off).`;
+
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-flash-latest',
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+      },
+    });
+
+    const result = await model.generateContent(prompt);
+    let emailBody = result.response.text();
+
+    // Clean up if markdown code blocks are present
+    emailBody = emailBody.replace(/```html\n?/g, '').replace(/```\n?/g, '').trim();
+
+    return emailBody;
+  },
+
+  async generateWhatsappSummary(vehicleData: VehicleData, insights: ServiceInsights): Promise<string> {
+    const prompt = `Create a short, friendly, and professional WhatsApp message for a customer based on these service insights.
+ 
+VEHICLE: ${vehicleData.vehicleMake} ${vehicleData.vehicleModel}
+MILEAGE: ${vehicleData.totalMileage} km
+ 
+INSIGHTS SUMMARY:
+${insights.summary}
+ 
+TOP PRIORITY ITEMS:
+${insights.priority_items.map(i => `- ${i.item} (${i.estimated_cost})`).join('\n')}
+ 
+INSTRUCTIONS:
+1. Start with "Hi Customer," (we will replace 'Customer' with their name later).
+2. Briefly mention their vehicle and that we've analyzed their service history.
+3. Highlight the most critical 1-2 priority items if any exist.
+4. Keep the tone helpful and transparent.
+5. Use a few relevant emojis (🚗, 🔧, ✅) but don't overdo it.
+6. Keep the message under 150 words.
+7. Do NOT include any placeholders like [Link] or [Phone Number], we will append those separately.
+8. End with "Your Service Advisor".`;
+
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-flash-latest',
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.95,
+        topK: 40,
+        maxOutputTokens: 500,
+      },
+    });
+
+    try {
+      const result = await model.generateContent(prompt);
+      return result.response.text().trim();
+    } catch (error) {
+      console.error('Error generating WhatsApp summary:', error);
+      return `Hi Customer,\n\nWe have analyzed the service history for your ${vehicleData.vehicleMake} ${vehicleData.vehicleModel}. There are some recommended maintenance items to review.\n\nPlease check the full report for details.\n\nYour Service Advisor`;
+    }
+  },
 };
+

@@ -11,6 +11,9 @@ import insightRoutes from './routes/insights';
 import callRoutes from './routes/calls';
 import dashboardRoutes from './routes/dashboard';
 import surveyRoutes from './routes/survey';
+import emailRoutes from './routes/emailRoutes';
+import whatsappRoutes from './routes/whatsapp';
+import customerViewRoutes from './routes/customersView';
 
 const app = express();
 
@@ -34,6 +37,9 @@ app.use('/api/insights', insightRoutes);
 app.use('/api/calls', callRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/survey', surveyRoutes);
+app.use('/api/email', emailRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
+app.use('/api/customerView', customerViewRoutes);
 
 // Error handler
 app.use(errorHandler);

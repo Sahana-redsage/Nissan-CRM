@@ -1,12 +1,12 @@
 generator client {
   provider = "prisma-client-js"
 }
-
+ 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
+ 
 model Telecaller {
   id               Int               @id @default(autoincrement())
   username         String            @unique
@@ -20,10 +20,12 @@ model Telecaller {
   callLogs         CallLog[]
   serviceDocuments ServiceDocument[]
   serviceInsights  ServiceInsight[]
-
+  whatsappMessages WhatsappMessage[]
+  smsMessages      SmsMessage[]
+  serviceEmails    ServiceEmail[]
   @@map("telecallers")
 }
-
+ 
 model Customer {
   id                 Int               @id @default(autoincrement())
   customerName       String            @map("customer_name")
@@ -48,12 +50,14 @@ model Customer {
   serviceDocuments   ServiceDocument[]
   serviceInsights    ServiceInsight[]
   surveyResponses    SurveyResponse[]
-
+  whatsappMessages   WhatsappMessage[]
+  smsMessages        SmsMessage[]
+  serviceEmails      ServiceEmail[]
   @@index([nextServiceDueDate])
   @@index([vehicleNumber])
   @@map("customers")
 }
-
+ 
 model ServiceDocument {
   id           Int        @id @default(autoincrement())
   customerId   Int        @map("customer_id")
@@ -65,11 +69,11 @@ model ServiceDocument {
   uploadedAt   DateTime   @default(now()) @map("uploaded_at")
   customer     Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
   telecaller   Telecaller @relation(fields: [uploadedBy], references: [id])
-
+ 
   @@index([customerId])
   @@map("service_documents")
 }
-
+ 
 model ServiceInsight {
   id             Int        @id @default(autoincrement())
   customerId     Int        @map("customer_id")
@@ -78,13 +82,15 @@ model ServiceInsight {
   rawLlmResponse String?    @map("raw_llm_response")
   documentIds    Int[]      @map("document_ids")
   generatedAt    DateTime   @default(now()) @map("generated_at")
-  customer       Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  telecaller     Telecaller @relation(fields: [generatedBy], references: [id])
-
+  customer       Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  telecaller     Telecaller        @relation(fields: [generatedBy], references: [id])
+  whatsappMessages WhatsappMessage[]
+  smsMessages      SmsMessage[]
+  serviceEmails    ServiceEmail[]
   @@index([customerId])
   @@map("service_insights")
 }
-
+ 
 model CallLog {
   id               Int        @id @default(autoincrement())
   customerId       Int        @map("customer_id")
@@ -99,12 +105,12 @@ model CallLog {
   bookingDate      DateTime?  @map("booking_date") @db.Date
   customer         Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
   telecaller       Telecaller @relation(fields: [telecallerId], references: [id])
-
+ 
   @@index([customerId])
   @@index([telecallerId])
   @@map("call_logs")
 }
-
+ 
 model SurveyResponse {
   id                    Int       @id @default(autoincrement())
   customerId            Int?      @map("customer_id")
@@ -127,10 +133,62 @@ model SurveyResponse {
   submittedAt           DateTime  @default(now()) @map("submitted_at")
   ipAddress             String?   @map("ip_address")
   customer              Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-
+ 
   @@index([customerId])
   @@index([submittedAt])
   @@index([rating])
   @@index([npsScore])
   @@map("survey_responses")
+}
+ 
+model WhatsappMessage {
+  id          Int       @id @default(autoincrement())
+  customerId  Int       @map("customer_id")
+  insightId   Int?      @map("insight_id")
+  messageSid  String    @unique @map("message_sid")
+  messageBody String?   @map("message_body")
+  status      String    @default("sent") // sent, delivered, read, failed
+  sentAt      DateTime  @default(now()) @map("sent_at")
+  readAt      DateTime? @map("read_at")
+ 
+  customer Customer        @relation(fields: [customerId], references: [id])
+  insight  ServiceInsight? @relation(fields: [insightId], references: [id])
+  telecaller Telecaller?   @relation(fields: [telecallerId], references: [id]) // Optional because system might send auto-messages in future, but for now it's from telecaller
+  telecallerId Int?        @map("telecaller_id")
+ 
+  @@index([customerId])
+  @@index([status])
+  @@map("whatsapp_messages")
+}
+ 
+model SmsMessage {
+  id          Int       @id @default(autoincrement())
+  customerId  Int       @map("customer_id")
+  insightId   Int?      @map("insight_id")
+  messageSid  String    @unique @map("message_sid")
+  messageBody String?   @map("message_body")
+  status      String    @default("sent") // sent, delivered, failed
+  sentAt      DateTime  @default(now()) @map("sent_at")
+ 
+  customer   Customer        @relation(fields: [customerId], references: [id])
+  insight    ServiceInsight? @relation(fields: [insightId], references: [id])
+  telecaller Telecaller?     @relation(fields: [telecallerId], references: [id])
+  telecallerId Int?          @map("telecaller_id")
+ 
+  @@index([customerId])
+  @@index([status])
+  @@map("sms_messages")
+}
+ 
+model ServiceEmail {
+  id        Int            @id @default(autoincrement())
+  insightId Int            @map("insight_id")
+  customerId Int           @map("customer_id")
+  sentAt    Float          @map("sent_at")
+  seenAt    Float?         @map("seen_at")
+  sentBy    Int            @map("sent_by")
+  insight   ServiceInsight @relation(fields: [insightId], references: [id], onDelete: Cascade)
+  customer  Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  sender    Telecaller     @relation(fields: [sentBy], references: [id])
+  @@map("service_emails")
 }
