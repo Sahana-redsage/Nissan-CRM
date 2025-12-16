@@ -12,6 +12,10 @@ import callRoutes from './routes/calls';
 import dashboardRoutes from './routes/dashboard';
 import surveyRoutes from './routes/survey';
 import emailAnalyticsRoutes from './routes/emailAnalytics';
+import emailRoutes from './routes/emailRoutes';
+import whatsappRoutes from './routes/whatsapp';
+import customerViewRoutes from './routes/customersView';
+import smsRoutes from './routes/sms';
 
 const app = express();
 
@@ -36,6 +40,10 @@ app.use('/api/calls', callRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/survey', surveyRoutes);
 app.use('/api/email-analytics', emailAnalyticsRoutes);
+app.use('/api/email', emailRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
+app.use('/api/customerView', customerViewRoutes);
+app.use('/api/sms', smsRoutes);
 
 // Error handler
 app.use(errorHandler);

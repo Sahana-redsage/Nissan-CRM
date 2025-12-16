@@ -77,7 +77,7 @@ Keep each section to 2-3 items max. Be concise. Use ₹ for costs.`;
 
     // Use Gemini 2.5 Flash for fast, cost-effective generation
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       generationConfig: {
         temperature: 0.7,
         topP: 0.95,
@@ -154,7 +154,7 @@ Return this exact JSON structure:
 If a field is not found, use null. Extract only what's clearly stated in the document.`;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       generationConfig: {
         temperature: 0.3,
         topP: 0.95,
@@ -183,4 +183,106 @@ If a field is not found, use null. Extract only what's clearly stated in the doc
       return {};
     }
   },
-};
+
+  async summarizeInsightsForEmail(insights: ServiceInsights, customerName: string): Promise<string> {
+    const prompt = `
+You are writing a short, customer-facing email from an authorized vehicle service center, encouraging the customer to review their upcoming due service insights via a link in the email.
+
+CUSTOMER: ${customerName || "Valued Customer"}
+INSIGHTS: ${JSON.stringify(insights)}
+
+Objective:
+Create a concise, engaging summary that highlights the most important service insights and motivates the customer to click the link to view full details.
+
+Instructions:
+1. Start with a warm, personalized greeting using the customer's name (e.g., "Dear [Name],").
+2. Write a compelling body of fewer than 50 words that:
+   - Summarizes key technical findings at a high level
+   - Emphasizes the most urgent or valuable service recommendation
+   - Creates curiosity and value, encouraging the customer to view the detailed insights via the link
+3. Use professional automotive service terminology (e.g., "Recommended periodic maintenance", "Preventive inspection findings").
+4. Do NOT mention the vehicle’s specific age or make assumptions about usage.
+5. End with a polite, professional sign-off (e.g., "Sincerely,<br>Your Service Team").
+6. Tone: Warm, reassuring, professional, and customer-centric.
+7. Output format:
+   - Return a single HTML <p> element
+   - Format as a complete email using <br> for line breaks (greeting <br> body <br> sign-off)
+   - Do not include the actual link text or URL.
+`;
+
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-flash-latest',
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+      },
+    });
+
+    const result = await model.generateContent(prompt);
+    let emailBody = result.response.text();
+
+    // Clean up if markdown code blocks are present
+    emailBody = emailBody.replace(/```html\n?/g, '').replace(/```\n?/g, '').trim();
+
+    return emailBody;
+  },
+
+  async generateWhatsappSummary(vehicleData: VehicleData, insights: ServiceInsights, customerName?: string, link?: string): Promise<string> {
+    const prompt = `Task: Write a service SMS using this specific template.
+ 
+Data:
+- Customer: ${customerName || 'Valued Customer'}
+- Vehicle: ${vehicleData.vehicleMake} ${vehicleData.vehicleModel}
+- Insights: ${JSON.stringify(insights)}
+- Link: ${link || '[Link]'}
+ 
+Template Structure:
+Hello [Name] 👋,
+ 
+We have analyzed the service history for your [Vehicle]. Based on the vehicle's age and recommended maintenance, two critical items are advised:
+ 
+- [Service 1]: [Brief Reason]
+- [Service 2]: [Brief Reason]
+ 
+Please review the detailed report here: [Link]
+ 
+Please book your appointment at the earliest.
+ 
+Sincerely, Your Service Team
+ 
+Rules:
+1. **NO** mention of "cost estimates" or "prices".
+2. **NO** asterisks (*) or bolding in bullets. Keep it plain text.
+3. [Link] MUST be the exact provided URL.
+4. Keep the tone professional and the length manageable.`;
+
+    // Use gemini-flash-latest as requested
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-flash-latest',
+      generationConfig: {
+        temperature: 0.4,
+        topP: 0.95,
+        topK: 40,
+        maxOutputTokens: 800,
+      },
+    });
+
+    try {
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+
+      console.log('=== WhatsApp Summary Response ===');
+      console.log('Raw:', text);
+
+      if (!text || !text.trim()) {
+        throw new Error('Empty response from LLM');
+      }
+
+      return text.trim();
+    } catch (error) {
+      console.error('Error generating WhatsApp summary:', error);
+      return `Hello ${customerName || 'Customer'} 👋,\n\nWe have analyzed the service history for your ${vehicleData.vehicleMake} ${vehicleData.vehicleModel}. Please review the recommended maintenance items in the full report below.\n\nReport Link: ${link}\n\nSincerely,\nYour Service Team`;
+    }
+  },
+
+}
