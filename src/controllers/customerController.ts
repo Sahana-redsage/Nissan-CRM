@@ -102,4 +102,61 @@ export const customerController = {
       });
     }
   },
+
+  async getById2(req: AuthRequest, res: Response) {
+    try {
+      const customerId = parseInt(req.params.id);
+
+      const customer = await prisma.customer.findUnique({
+        where: { id: customerId },
+        include: {
+          serviceDocuments: {
+            orderBy: { uploadedAt: 'desc' },
+          },
+          serviceInsights: {
+            orderBy: { generatedAt: 'desc' },
+            take: 1,
+          },
+          callLogs: {
+            orderBy: { callDate: 'desc' },
+            take: 5,
+            include: {
+              telecaller: {
+                select: {
+                  fullName: true,
+                  username: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!customer) {
+        return res.status(404).json({
+          success: false,
+          message: 'Customer not found',
+        });
+      }
+
+      res.json({
+        success: true,
+        data: {
+          ...customer,
+          documents: customer.serviceDocuments,
+          latestInsights: customer.serviceInsights[0] || null,
+          recentCalls: customer.callLogs,
+        },
+      });
+    } catch (error: any) {
+      logger.error('Error fetching customer:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch customer',
+      });
+    }
+  },
+
 };
+
+

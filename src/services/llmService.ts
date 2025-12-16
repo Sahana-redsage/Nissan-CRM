@@ -185,19 +185,30 @@ If a field is not found, use null. Extract only what's clearly stated in the doc
   },
 
   async summarizeInsightsForEmail(insights: ServiceInsights, customerName: string): Promise<string> {
-    const prompt = `Write a short, hospitable email to a customer about their vehicle service insights.
+    const prompt = `
+You are writing a short, customer-facing email from an authorized vehicle service center, encouraging the customer to review their upcoming due service insights via a link in the email.
 
-CUSTOMER: ${customerName || 'Valued Customer'}
+CUSTOMER: ${customerName || "Valued Customer"}
 INSIGHTS: ${JSON.stringify(insights)}
 
+Objective:
+Create a concise, engaging summary that highlights the most important service insights and motivates the customer to click the link to view full details.
+
 Instructions:
-1. Start with a warm greeting using the customer's name (e.g., "Dear [Name],").
-2. Write a concise (<50 words) body summarizing the key technical findings and the most urgent priority.
-3. Use professional automotive dealer terminology (e.g., "Recommended periodic maintenance").
-4. AVOID mentioning the vehicle's specific age (e.g. do NOT say "5-year old").
-5. End with a polite, professional sign-off (e.g., "Sincerely, Your Service Team").
-6. Tone: Warm, welcoming, and professional.
-7. Return HTML paragraph <p> for the body, but formatted as a full email (greeting <br> body <br> sign-off).`;
+1. Start with a warm, personalized greeting using the customer's name (e.g., "Dear [Name],").
+2. Write a compelling body of fewer than 50 words that:
+   - Summarizes key technical findings at a high level
+   - Emphasizes the most urgent or valuable service recommendation
+   - Creates curiosity and value, encouraging the customer to view the detailed insights via the link
+3. Use professional automotive service terminology (e.g., "Recommended periodic maintenance", "Preventive inspection findings").
+4. Do NOT mention the vehicle’s specific age or make assumptions about usage.
+5. End with a polite, professional sign-off (e.g., "Sincerely,<br>Your Service Team").
+6. Tone: Warm, reassuring, professional, and customer-centric.
+7. Output format:
+   - Return a single HTML <p> element
+   - Format as a complete email using <br> for line breaks (greeting <br> body <br> sign-off)
+   - Do not include the actual link text or URL.
+`;
 
     const model = genAI.getGenerativeModel({
       model: 'gemini-flash-latest',
@@ -216,45 +227,55 @@ Instructions:
     return emailBody;
   },
 
-  async generateWhatsappSummary(vehicleData: VehicleData, insights: ServiceInsights): Promise<string> {
-    const prompt = `Create a short, friendly, and professional WhatsApp message for a customer based on these service insights.
+  async generateWhatsappSummary(vehicleData: VehicleData, insights: ServiceInsights, customerName?: string, link?: string): Promise<string> {
+    const prompt = `Write a professional service message for a customer.
  
+CUSTOMER: ${customerName || 'Valued Customer'}
 VEHICLE: ${vehicleData.vehicleMake} ${vehicleData.vehicleModel}
-MILEAGE: ${vehicleData.totalMileage} km
+INSIGHTS: ${JSON.stringify(insights)}
+LINK: ${link || '[Link]'}
  
-INSIGHTS SUMMARY:
-${insights.summary}
+*CRITICAL*: Never miss the link in the message. Give the entire link as it is.Dont miss or truncate it
  
-TOP PRIORITY ITEMS:
-${insights.priority_items.map(i => `- ${i.item} (${i.estimated_cost})`).join('\n')}
+Instructions:
+1. **Greeting**: "Hello [Name] 👋". (Exactly one emoji).
+2. **Intro**: State that we analyzed the service history for their [Vehicle].
+3. **Recommendations**: List 2 pivotal items. Use this format: "- [Service Name]: [Reason]."
+   - **NO** asterisks (*) or bolding. Keep it clean plain text.
+4. **CTA**: "Please book this service at the earliest."
+5. **URL**: "View report: [Link]"
+   - **CRITICAL**: Output [Link] EXACTLY. Do NOT shorten.
+6. **Constraint**: Keep it under 60 words, but use line breaks for readability.
  
-INSTRUCTIONS:
-1. Start with "Hi Customer," (we will replace 'Customer' with their name later).
-2. Briefly mention their vehicle and that we've analyzed their service history.
-3. Highlight the most critical 1-2 priority items if any exist.
-4. Keep the tone helpful and transparent.
-5. Use a few relevant emojis (🚗, 🔧, ✅) but don't overdo it.
-6. Keep the message under 150 words.
-7. Do NOT include any placeholders like [Link] or [Phone Number], we will append those separately.
-8. End with "Your Service Advisor".`;
+7. Sign-off: "Sincerely, Your Service Team"`;
 
+    // Use gemini-flash-latest as requested
     const model = genAI.getGenerativeModel({
       model: 'gemini-flash-latest',
       generationConfig: {
-        temperature: 0.7,
+        temperature: 0.5,
         topP: 0.95,
         topK: 40,
-        maxOutputTokens: 500,
+        maxOutputTokens: 800,
       },
     });
 
     try {
       const result = await model.generateContent(prompt);
-      return result.response.text().trim();
+      const text = result.response.text();
+
+      console.log('=== WhatsApp Summary Response ===');
+      console.log('Raw:', text);
+
+      if (!text || !text.trim()) {
+        throw new Error('Empty response from LLM');
+      }
+
+      return text.trim();
     } catch (error) {
       console.error('Error generating WhatsApp summary:', error);
-      return `Hi Customer,\n\nWe have analyzed the service history for your ${vehicleData.vehicleMake} ${vehicleData.vehicleModel}. There are some recommended maintenance items to review.\n\nPlease check the full report for details.\n\nYour Service Advisor`;
+      return `Hello ${customerName || 'Customer'} 👋,\n\nWe have analyzed the service history for your ${vehicleData.vehicleMake} ${vehicleData.vehicleModel}. Please review the recommended maintenance items in the full report below.\n\nReport Link: ${link}\n\nSincerely,\nYour Service Team`;
     }
   },
-};
 
+}

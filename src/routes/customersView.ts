@@ -4,6 +4,6 @@ import { customerController } from '../controllers/customerController';
 
 const router = Router();
 
-router.get('/:id', customerController.getById);
+router.get('/:id', customerController.getById2);
 
 export default router;

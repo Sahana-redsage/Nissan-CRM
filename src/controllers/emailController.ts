@@ -68,6 +68,30 @@ export const emailController = {
                 customer.customerName
             );
 
+            // 4. Append Insight Link
+            const linkRef = `email_${Date.now()}_${customer.id}`;
+            const insightUrl = `${config.frontendUrl}/customer-view/${customer.id}?source=email&ref=${linkRef}`;
+
+            const linkHtml = `
+                <br><br>
+                <p style="text-align: center;">
+                    <a href="${insightUrl}" 
+                       style="display: inline-block; padding: 12px 24px; background-color: #C3002F; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+                        View Full Service Insights
+                    </a>
+                </p>
+                <p style="text-align: center; font-size: 12px; color: #666;">
+                    If the button doesn't work, copy and paste this link:<br>
+                    <a href="${insightUrl}" style="color: #666;">${insightUrl}</a>
+                </p>
+            `;
+
+            if (emailHtml.includes('</body>')) {
+                emailHtml = emailHtml.replace('</body>', `${linkHtml}</body>`);
+            } else {
+                emailHtml += linkHtml;
+            }
+
             // 4. Append Tracking Pixel
             const trackingUrl = `${config.backendUrl}/api/email/track/${serviceEmail.id}`;
             logger.info(`Generated Tracking URL: ${trackingUrl}`); // DEBUG LOG

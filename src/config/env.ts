@@ -23,6 +23,12 @@ interface Config {
     pass: string;
     fromName: string;
   };
+
+  twilio: {
+    accountSid: string;
+    authToken: string;
+    phoneNumber: string;
+  };
 }
 
 export const config: Config = {
@@ -46,5 +52,10 @@ export const config: Config = {
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
     bucketName: process.env.R2_BUCKET_NAME || '',
     publicUrl: process.env.R2_PUBLIC_URL || '',
+  },
+  twilio: {
+    accountSid: process.env.TWILIO_ACCOUNT_SID || '',
+    authToken: process.env.TWILIO_AUTH_TOKEN || '',
+    phoneNumber: process.env.TWILIO_PHONE_NUMBER || '',
   },
 };
