@@ -19,6 +19,7 @@ import smsRoutes from './routes/sms';
 import whatsappAnalyticsRoutes from './routes/whatsappAnalytics';
 import smsAnalyticsRoutes from './routes/smsAnalytics';
 import sourceMetricsRoutes from './routes/sourceMetrics';
+import analyticsRoutes from './routes/analyticsRoutes';
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.use('/api/sms', smsRoutes);
 app.use('/api/whatsapp-analytics', whatsappAnalyticsRoutes);
 app.use('/api/sms-analytics', smsAnalyticsRoutes);
 app.use('/api/source-metrics', sourceMetricsRoutes);
+app.use('/api/analytics',analyticsRoutes);
 
 // Error handler
 app.use(errorHandler);
