@@ -53,6 +53,7 @@ model Customer {
   whatsappMessages   WhatsappMessage[]
   smsMessages        SmsMessage[]
   serviceEmails      ServiceEmail[]
+  sourceMetrics      SourceMetric[]
   @@index([nextServiceDueDate])
   @@index([vehicleNumber])
   @@map("customers")
@@ -191,4 +192,20 @@ model ServiceEmail {
   customer  Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
   sender    Telecaller     @relation(fields: [sentBy], references: [id])
   @@map("service_emails")
+}
+
+model SourceMetric {
+  id         Int      @id @default(autoincrement())
+  customerId Int      @map("customer_id")
+  source     String   // 'email' or 'sms'
+  firstOpenedAt DateTime @default(now()) @map("first_opened_at")
+  lastOpenedAt  DateTime @updatedAt @map("last_opened_at")
+  openCount  Int      @default(1) @map("open_count")
+  
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  @@unique([customerId, source])
+  @@index([source])
+  @@index([customerId])
+  @@map("source_metrics")
 }
