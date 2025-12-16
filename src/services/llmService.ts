@@ -228,32 +228,39 @@ Instructions:
   },
 
   async generateWhatsappSummary(vehicleData: VehicleData, insights: ServiceInsights, customerName?: string, link?: string): Promise<string> {
-    const prompt = `Write a professional service message for a customer.
+    const prompt = `Task: Write a service SMS using this specific template.
  
-CUSTOMER: ${customerName || 'Valued Customer'}
-VEHICLE: ${vehicleData.vehicleMake} ${vehicleData.vehicleModel}
-INSIGHTS: ${JSON.stringify(insights)}
-LINK: ${link || '[Link]'}
+Data:
+- Customer: ${customerName || 'Valued Customer'}
+- Vehicle: ${vehicleData.vehicleMake} ${vehicleData.vehicleModel}
+- Insights: ${JSON.stringify(insights)}
+- Link: ${link || '[Link]'}
  
-*CRITICAL*: Never miss the link in the message. Give the entire link as it is.Dont miss or truncate it
+Template Structure:
+Hello [Name] 👋,
  
-Instructions:
-1. **Greeting**: "Hello [Name] 👋". (Exactly one emoji).
-2. **Intro**: State that we analyzed the service history for their [Vehicle].
-3. **Recommendations**: List 2 pivotal items. Use this format: "- [Service Name]: [Reason]."
-   - **NO** asterisks (*) or bolding. Keep it clean plain text.
-4. **CTA**: "Please book this service at the earliest."
-5. **URL**: "View report: [Link]"
-   - **CRITICAL**: Output [Link] EXACTLY. Do NOT shorten.
-6. **Constraint**: Keep it under 60 words, but use line breaks for readability.
+We have analyzed the service history for your [Vehicle]. Based on the vehicle's age and recommended maintenance, two critical items are advised:
  
-7. Sign-off: "Sincerely, Your Service Team"`;
+- [Service 1]: [Brief Reason]
+- [Service 2]: [Brief Reason]
+ 
+Please review the detailed report here: [Link]
+ 
+Please book your appointment at the earliest.
+ 
+Sincerely, Your Service Team
+ 
+Rules:
+1. **NO** mention of "cost estimates" or "prices".
+2. **NO** asterisks (*) or bolding in bullets. Keep it plain text.
+3. [Link] MUST be the exact provided URL.
+4. Keep the tone professional and the length manageable.`;
 
     // Use gemini-flash-latest as requested
     const model = genAI.getGenerativeModel({
       model: 'gemini-flash-latest',
       generationConfig: {
-        temperature: 0.5,
+        temperature: 0.4,
         topP: 0.95,
         topK: 40,
         maxOutputTokens: 800,
