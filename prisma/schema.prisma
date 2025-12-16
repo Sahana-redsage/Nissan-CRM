@@ -47,6 +47,7 @@ model Customer {
   callLogs           CallLog[]
   serviceDocuments   ServiceDocument[]
   serviceInsights    ServiceInsight[]
+  surveyResponses    SurveyResponse[]
 
   @@index([nextServiceDueDate])
   @@index([vehicleNumber])
@@ -102,4 +103,34 @@ model CallLog {
   @@index([customerId])
   @@index([telecallerId])
   @@map("call_logs")
+}
+
+model SurveyResponse {
+  id                    Int       @id @default(autoincrement())
+  customerId            Int?      @map("customer_id")
+  preferredLanguage     String    @map("preferred_language")
+  visitReasons          Json      @map("visit_reasons")
+  rating                Int
+  comments              String?
+  firstTimeCompletion   Boolean   @map("first_time_completion")
+  returnReasons         Json?     @map("return_reasons")
+  contactAgreement      Boolean   @map("contact_agreement")
+  customerName          String?   @map("customer_name")
+  customerEmail         String?   @map("customer_email")
+  customerPhone         String?   @map("customer_phone")
+  vehicleNumber         String?   @map("vehicle_number")
+  waitTimeRating        Int?      @map("wait_time_rating")
+  communicationRating   Int?      @map("communication_rating")
+  npsScore              Int?      @map("nps_score")
+  sentimentScore        Float?    @map("sentiment_score")
+  emotionAnalysis       Json?     @map("emotion_analysis")
+  submittedAt           DateTime  @default(now()) @map("submitted_at")
+  ipAddress             String?   @map("ip_address")
+  customer              Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([customerId])
+  @@index([submittedAt])
+  @@index([rating])
+  @@index([npsScore])
+  @@map("survey_responses")
 }
