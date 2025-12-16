@@ -12,8 +12,8 @@ export const emailAnalyticsController = {
         SELECT 
           COUNT(*)::int as "totalEmailsSent",
           COUNT(DISTINCT "customer_id")::int as "uniqueCustomersEmailed",
-          MIN(to_timestamp("sent_at")) as "firstEmailSentAt",
-          MAX(to_timestamp("sent_at")) as "lastEmailSentAt"
+          MIN(to_timestamp("sent_at" / 1000.0)) as "firstEmailSentAt",
+          MAX(to_timestamp("sent_at" / 1000.0)) as "lastEmailSentAt"
         FROM "service_emails"
         WHERE "sent_by" = ${telecallerId}
       `;
@@ -28,14 +28,14 @@ export const emailAnalyticsController = {
         SELECT COUNT(*)::int as "emailsLast7Days"
         FROM "service_emails"
         WHERE "sent_by" = ${telecallerId}
-          AND to_timestamp("sent_at") >= ${sevenDaysAgo}
+          AND to_timestamp("sent_at" / 1000.0) >= ${sevenDaysAgo}
       `;
 
       const [last30] = await prisma.$queryRaw<any[]>`
         SELECT COUNT(*)::int as "emailsLast30Days"
         FROM "service_emails"
         WHERE "sent_by" = ${telecallerId}
-          AND to_timestamp("sent_at") >= ${thirtyDaysAgo}
+          AND to_timestamp("sent_at" / 1000.0) >= ${thirtyDaysAgo}
       `;
 
       res.json({
@@ -68,13 +68,14 @@ export const emailAnalyticsController = {
           t."full_name" as "fullName",
           COUNT(se.id)::int as "emailsSent",
           COUNT(DISTINCT se."customer_id")::int as "uniqueCustomersEmailed",
-          MIN(to_timestamp(se."sent_at")) as "firstEmailSentAt",
-          MAX(to_timestamp(se."sent_at")) as "lastEmailSentAt"
+          MIN(to_timestamp(se."sent_at" / 1000.0)) as "firstEmailSentAt",
+          MAX(to_timestamp(se."sent_at" / 1000.0)) as "lastEmailSentAt"
         FROM "telecallers" t
         LEFT JOIN "service_emails" se ON t.id = se."sent_by"
         GROUP BY t.id, t."full_name"
         ORDER BY "emailsSent" DESC
       `;
+
 
       res.json({
         success: true,
@@ -99,8 +100,8 @@ export const emailAnalyticsController = {
           c."customer_name" as "customerName",
           c."vehicle_number" as "vehicleNumber",
           COUNT(se.id)::int as "emailsSent",
-          MIN(to_timestamp(se."sent_at")) as "firstEmailSentAt",
-          MAX(to_timestamp(se."sent_at")) as "lastEmailSentAt"
+          MIN(to_timestamp(se."sent_at" / 1000.0)) as "firstEmailSentAt",
+          MAX(to_timestamp(se."sent_at" / 1000.0)) as "lastEmailSentAt"
         FROM "service_emails" se
         JOIN "customers" c ON c.id = se."customer_id"
         WHERE se."sent_by" = ${telecallerId}
@@ -127,11 +128,11 @@ export const emailAnalyticsController = {
 
       const timeseries = await prisma.$queryRaw<any[]>`
         SELECT
-          DATE_TRUNC('day', to_timestamp("sent_at")) as "date",
+          DATE_TRUNC('day', to_timestamp("sent_at" / 1000.0)) as "date",
           COUNT(*)::int as "emailsSent"
         FROM "service_emails"
         WHERE "sent_by" = ${telecallerId}
-        GROUP BY DATE_TRUNC('day', to_timestamp("sent_at"))
+        GROUP BY DATE_TRUNC('day', to_timestamp("sent_at" / 1000.0))
         ORDER BY "date" ASC
       `;
 

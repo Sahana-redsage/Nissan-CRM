@@ -16,6 +16,8 @@ import emailRoutes from './routes/emailRoutes';
 import whatsappRoutes from './routes/whatsapp';
 import customerViewRoutes from './routes/customersView';
 import smsRoutes from './routes/sms';
+import whatsappAnalyticsRoutes from './routes/whatsappAnalytics';
+import smsAnalyticsRoutes from './routes/smsAnalytics';
 
 const app = express();
 
@@ -44,6 +46,8 @@ app.use('/api/email', emailRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/customerView', customerViewRoutes);
 app.use('/api/sms', smsRoutes);
+app.use('/api/whatsapp-analytics', whatsappAnalyticsRoutes);
+app.use('/api/sms-analytics', smsAnalyticsRoutes);
 
 // Error handler
 app.use(errorHandler);
