@@ -227,61 +227,38 @@ Instructions:
     return emailBody;
   },
 
-  async generateWhatsappSummary(vehicleData: VehicleData, insights: ServiceInsights, customerName?: string, link?: string): Promise<string> {
-    const prompt = `Task: Write a service SMS using this specific template.
- 
-Data:
-- Customer: ${customerName || 'Valued Customer'}
-- Vehicle: ${vehicleData.vehicleMake} ${vehicleData.vehicleModel}
-- Insights: ${JSON.stringify(insights)}
-- Link: ${link || '[Link]'}
- 
-Template Structure:
-Hello [Name] 👋,
- 
-We have analyzed the service history for your [Vehicle]. Based on the vehicle's age and recommended maintenance, two critical items are advised:
- 
-- [Service 1]: [Brief Reason]
-- [Service 2]: [Brief Reason]
- 
-Please review the detailed report here: [Link]
- 
-Please book your appointment at the earliest.
- 
-Sincerely, Your Service Team
- 
-Rules:
-1. **NO** mention of "cost estimates" or "prices".
-2. **NO** asterisks (*) or bolding in bullets. Keep it plain text.
-3. [Link] MUST be the exact provided URL.
-4. Keep the tone professional and the length manageable.`;
+  async generateWhatsappSummary(vehicleData: VehicleData, insights: ServiceInsights, customerName?: string): Promise<string> {
+    const prompt = `Write a short, professional WhatsApp message for a vehicle service reminder.
 
-    // Use gemini-flash-latest as requested
+CUSTOMER: ${customerName || 'Valued Customer'}
+VEHICLE: ${vehicleData.vehicleMake} ${vehicleData.vehicleModel}
+INSIGHTS: ${JSON.stringify(insights)}
+
+Instructions:
+1. Start with "Hi [Customer Name] 👋,".
+2. State clearly that we have analyzed the service history.
+3. Extract exactly 2 key maintenance points from the insights.
+4. List them as simple bullet points (e.g. "- Brake Pads").
+5. Keep it very concise.
+6. Return PLAIN TEXT.
+7. Do NOT include any links or "Book now" text. (This will be added separately).`;
+
     const model = genAI.getGenerativeModel({
       model: 'gemini-flash-latest',
       generationConfig: {
         temperature: 0.4,
         topP: 0.95,
         topK: 40,
-        maxOutputTokens: 800,
+        maxOutputTokens: 500,
       },
     });
 
     try {
       const result = await model.generateContent(prompt);
-      const text = result.response.text();
-
-      console.log('=== WhatsApp Summary Response ===');
-      console.log('Raw:', text);
-
-      if (!text || !text.trim()) {
-        throw new Error('Empty response from LLM');
-      }
-
-      return text.trim();
+      return result.response.text().trim();
     } catch (error) {
       console.error('Error generating WhatsApp summary:', error);
-      return `Hello ${customerName || 'Customer'} 👋,\n\nWe have analyzed the service history for your ${vehicleData.vehicleMake} ${vehicleData.vehicleModel}. Please review the recommended maintenance items in the full report below.\n\nReport Link: ${link}\n\nSincerely,\nYour Service Team`;
+      return `Hi ${customerName || 'valsued Customer'} 👋,\n\nWe analyzed your ${vehicleData.vehicleMake} ${vehicleData.vehicleModel} service history. Key updates available.`;
     }
   },
 
