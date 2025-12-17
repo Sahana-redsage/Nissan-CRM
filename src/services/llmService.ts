@@ -77,7 +77,7 @@ Keep each section to 2-3 items max. Be concise. Use ₹ for costs.`;
 
     // Use Gemini 2.5 Flash for fast, cost-effective generation
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash-lite',
       generationConfig: {
         temperature: 0.7,
         topP: 0.95,
@@ -154,7 +154,7 @@ Return this exact JSON structure:
 If a field is not found, use null. Extract only what's clearly stated in the document.`;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash-lite',
       generationConfig: {
         temperature: 0.3,
         topP: 0.95,
@@ -211,7 +211,7 @@ Instructions:
 `;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-flash-latest',
+      model: 'gemini-2.5-flash-lite',
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 2048,
@@ -244,7 +244,7 @@ Instructions:
 7. Do NOT include any links or "Book now" text. (This will be added separately).`;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-flash-latest',
+      model: 'gemini-2.5-flash-lite',
       generationConfig: {
         temperature: 0.4,
         topP: 0.95,
