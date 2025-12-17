@@ -92,6 +92,7 @@ export const customerController = {
           documents: customer.serviceDocuments,
           latestInsights: customer.serviceInsights[0] || null,
           recentCalls: customer.callLogs,
+          insightId: customer.serviceInsights[0]?.id || null,
         },
       });
     } catch (error: any) {
