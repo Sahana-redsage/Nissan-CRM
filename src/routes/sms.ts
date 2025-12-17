@@ -5,6 +5,7 @@ import { authMiddleware } from '../middleware/auth';
 const router = express.Router();
 
 router.post('/send-insight', authMiddleware, smsController.sendInsightSummary);
+router.post('/send-insight/bulk', authMiddleware, smsController.sendBulkInsightSummary);
 router.post('/webhook', smsController.webhook);
 router.get('/logs/:customerId', authMiddleware, smsController.getLogsByCustomer);
 router.get('/analytics', authMiddleware, smsController.getAnalytics);
