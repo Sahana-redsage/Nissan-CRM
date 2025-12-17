@@ -19,6 +19,7 @@ const upload = multer({
     }
   },
 });
+router.get('/:customerId/source-metrics', sourceMetricsController.trackLinkOpen);
 
 router.use(authMiddleware);
 
