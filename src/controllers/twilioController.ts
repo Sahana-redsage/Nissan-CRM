@@ -101,6 +101,51 @@ export const twilioController = {
   },
 
   // ======================================================
+// 4️⃣ Get Call Logs from Twilio
+// ======================================================
+getCallLogs: async (req: Request, res: Response) => {
+  try {
+    const client = twilio(
+      config.accountSid,
+      process.env.TWILIO_AUTH_TOKEN // use Auth Token for REST reads
+    );
+
+    // Optional query params
+    const { limit = 20 } = req.query;
+
+    const calls = await client.calls.list({
+      limit: Number(limit)
+    });
+
+    const logs = calls.map(call => ({
+      callSid: call.sid,
+      from: call.from,
+      to: call.to,
+      status: call.status,
+      direction: call.direction,
+      duration: call.duration,
+      startTime: call.startTime,
+      endTime: call.endTime,
+      price: call.price,
+      priceUnit: call.priceUnit
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: logs
+    });
+  } catch (error: any) {
+    console.error("❌ Error fetching call logs:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch call logs",
+      error: error.message
+    });
+  }
+}
+,
+
+  // ======================================================
   // 3️⃣ Call Status Callback
   // ======================================================
   callStatus: (req: Request, res: Response) => {
