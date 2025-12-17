@@ -1,12 +1,11 @@
-import { Router } from 'express';
-import { callController } from '../controllers/callController';
-import { authMiddleware } from '../middleware/auth';
+import { Router } from "express";
+import { twilioController } from "../controllers/twilioController";
 
 const router = Router();
 
-router.use(authMiddleware);
-
-router.post('/log', callController.log);
-router.get('/:customerId', callController.getByCustomerId);
+router.get("/token", twilioController.generateToken);
+router.post("/initiate", twilioController.initiateConciergeCall);
+router.post("/voice", twilioController.voiceResponse);
+router.post("/status", twilioController.callStatus);
 
 export default router;
