@@ -70,7 +70,7 @@ export const emailController = {
 
             // 4. Append Insight Link
             const linkRef = `email_${Date.now()}_${customer.id}`;
-            const insightUrl = `${config.frontendUrl}/customer-view/${customer.id}?source=email&ref=${linkRef}`;
+            const insightUrl = `https://nissancall-fe.vercel.app/customer-view/${customer.id}?source=email&ref=${linkRef}`;
 
             const linkHtml = `
                 <br><br>
@@ -114,6 +114,12 @@ export const emailController = {
             };
 
             await transporter.sendMail(mailOptions);
+
+            // Update the record with the generated body
+            await prisma.serviceEmail.update({
+                where: { id: serviceEmail.id },
+                data: { emailBody: emailHtml }
+            });
 
             logger.info(`Email sent successfully to ${customer.email}`);
 
@@ -167,23 +173,27 @@ export const emailController = {
         try {
             const customerId = parseInt(req.params.id);
 
-            const email = await prisma.serviceEmail.findMany({
+            const emails = await prisma.serviceEmail.findMany({
                 where: { customerId: customerId },
                 include: {
                     customer: true,
+                    sender: {
+                        select: {
+                            fullName: true
+                        }
+                    }
                 },
             });
 
-            if (!email) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Email not found',
-                });
-            }
+            const formattedEmails = emails.map(email => ({
+                ...email,
+                sentBy: email.sender.fullName,
+                sender: undefined
+            }));
 
             res.json({
                 success: true,
-                data: email,
+                data: formattedEmails,
             });
         } catch (error) {
             logger.error(`Error fetching email logs:`, error);

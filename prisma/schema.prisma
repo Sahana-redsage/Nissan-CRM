@@ -188,6 +188,7 @@ model ServiceEmail {
   sentAt    Float          @map("sent_at")
   seenAt    Float?         @map("seen_at")
   sentBy    Int            @map("sent_by")
+  emailBody String?        @map("email_body")
   insight   ServiceInsight @relation(fields: [insightId], references: [id], onDelete: Cascade)
   customer  Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
   sender    Telecaller     @relation(fields: [sentBy], references: [id])

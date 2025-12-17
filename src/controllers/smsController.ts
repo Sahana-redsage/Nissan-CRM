@@ -56,7 +56,7 @@ export const smsController = {
 
             // Generate Unique Tracking Link
             const trackingRef = `sms_${Date.now()}_${customerId}`;
-            const uiLink = `https://m8n18g7b-5173.inc1.devtunnels.ms/customer-view/${customerId}?source=sms&ref=${trackingRef}`;
+            const uiLink = `https://nissancall-fe.vercel.app/customer-view/${customerId}?source=sms&ref=${trackingRef}`;
 
             const baseMessage = await llmService.generateWhatsappSummary(
                 vehicleData,
