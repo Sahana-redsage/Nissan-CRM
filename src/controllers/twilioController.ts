@@ -6,7 +6,7 @@ const config = {
   accountSid: process.env.TWILIO_ACCOUNT_SID!,
   apiKey: process.env.TWILIO_API_KEY!,
   apiSecret: process.env.TWILIO_API_SECRET!,
-  twilioNumber: process.env.TWILIO_NUMBER!,
+  twilioNumber: process.env.TWILIO_PHONE_NUMBER!,
   twimlAppSid: process.env.TWILIO_TWIML_APP_SID,
   baseUrl: process.env.BASE_URL!
 };
