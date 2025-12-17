@@ -188,20 +188,39 @@ export const analyticsController = {
                     select: { id: true, fullName: true, username: true }
                 });
 
-                // Merge
+                // Merge and filter by channel
                 data = telecallers.map(t => {
                     const e = emailStats.find(s => s.id === t.id) || { emailCount: 0, emailUnique: 0 };
                     const s = smsStats.find(s => s.id === t.id) || { smsCount: 0, smsUnique: 0 };
                     const w = whatsappStats.find(s => s.id === t.id) || { waCount: 0, waUnique: 0 };
-                    return {
+                    
+                    const result: any = {
                         telecallerId: t.id,
                         fullName: t.fullName,
                         username: t.username,
-                        email: { sent: e.emailCount, unique: e.emailUnique },
-                        sms: { sent: s.smsCount, unique: s.smsUnique },
-                        whatsapp: { sent: w.waCount, unique: w.waUnique },
-                        totalSent: channel === 'email' ? e.emailCount : channel === 'sms' ? s.smsCount : channel === 'whatsapp' ? w.waCount : (e.emailCount + s.smsCount + w.waCount)
+                        totalSent: 0
                     };
+
+                    // Only include selected channel's data
+                    if (channel === 'all' || channel === 'email') {
+                        result.email = { sent: e.emailCount, unique: e.emailUnique };
+                        if (channel === 'email') result.totalSent = e.emailCount;
+                    }
+                    if (channel === 'all' || channel === 'sms') {
+                        result.sms = { sent: s.smsCount, unique: s.smsUnique };
+                        if (channel === 'sms') result.totalSent = s.smsCount;
+                    }
+                    if (channel === 'all' || channel === 'whatsapp') {
+                        result.whatsapp = { sent: w.waCount, unique: w.waUnique };
+                        if (channel === 'whatsapp') result.totalSent = w.waCount;
+                    }
+                    
+                    // Only calculate total if 'all' channels are selected
+                    if (channel === 'all') {
+                        result.totalSent = e.emailCount + s.smsCount + w.waCount;
+                    }
+                    
+                    return result;
                 });
 
                 // Sort
@@ -279,19 +298,49 @@ export const analyticsController = {
 
                 const customerResults = await prisma.$queryRawUnsafe<any[]>(customerQuery);
 
-                data = customerResults.map(c => ({
-                    id: c.id,
-                    name: c.customer_name,
-                    vehicle: c.vehicle_number,
-                    contact: { phone: c.phone, email: c.email },
-                    stats: {
-                        email: Number(c.emailCount),
-                        sms: Number(c.smsCount),
-                        whatsapp: Number(c.waCount),
-                        total: channel === 'email' ? Number(c.emailCount) : channel === 'sms' ? Number(c.smsCount) : channel === 'whatsapp' ? Number(c.waCount) : (Number(c.emailCount) + Number(c.smsCount) + Number(c.waCount)),
-                        lastContact: [c.lastEmail, c.lastSms, c.lastWa].filter(d => d).sort().pop() || null
+                data = customerResults.map(c => {
+                    const stats: any = {
+                        total: 0,
+                        lastContact: null
+                    };
+                    
+                    // Only include selected channel's data
+                    if (channel === 'all' || channel === 'email') {
+                        stats.email = Number(c.emailCount);
+                        if (channel === 'email') stats.total = Number(c.emailCount);
+                        if (c.lastEmail) stats.lastContact = c.lastEmail;
                     }
-                }));
+                    if (channel === 'all' || channel === 'sms') {
+                        stats.sms = Number(c.smsCount);
+                        if (channel === 'sms') stats.total = Number(c.smsCount);
+                        if (c.lastSms && (!stats.lastContact || new Date(c.lastSms) > new Date(stats.lastContact))) {
+                            stats.lastContact = c.lastSms;
+                        }
+                    }
+                    if (channel === 'all' || channel === 'whatsapp') {
+                        stats.whatsapp = Number(c.waCount);
+                        if (channel === 'whatsapp') stats.total = Number(c.waCount);
+                        if (c.lastWa && (!stats.lastContact || new Date(c.lastWa) > new Date(stats.lastContact))) {
+                            stats.lastContact = c.lastWa;
+                        }
+                    }
+                    
+                    // Only calculate total if 'all' channels are selected
+                    if (channel === 'all') {
+                        stats.total = Number(c.emailCount) + Number(c.smsCount) + Number(c.waCount);
+                        // Find the most recent contact date
+                        const lastContacts = [c.lastEmail, c.lastSms, c.lastWa].filter(d => d);
+                        stats.lastContact = lastContacts.length > 0 ? lastContacts.sort().pop() : null;
+                    }
+                    
+                    return {
+                        id: c.id,
+                        name: c.customer_name,
+                        vehicle: c.vehicle_number,
+                        contact: { phone: c.phone, email: c.email },
+                        stats: stats
+                    };
+                });
 
             } else if (view === 'timeseries') {
                 // --- TIMESERIES VIEW ---
@@ -320,20 +369,32 @@ export const analyticsController = {
             GROUP BY 1
           `);
 
-                // Merge series
+                // Merge series based on selected channel
                 const map = new Map();
+                
                 const addToMap = (arr: any[], type: string) => {
-                    arr.forEach(row => {
-                        const d = new Date(row.date).toISOString().split('T')[0]; // simple date key
-                        if (!map.has(d)) map.set(d, { date: row.date, email: 0, sms: 0, whatsapp: 0 });
-                        const entry = map.get(d);
-                        entry[type] = row.count;
-                    });
+                    if (channel === 'all' || channel === type) {
+                        arr.forEach(row => {
+                            const d = new Date(row.date).toISOString().split('T')[0]; // simple date key
+                            if (!map.has(d)) {
+                                // Initialize with all zeros, but only the selected channel will be populated
+                                map.set(d, { 
+                                    date: row.date, 
+                                    email: channel === 'all' || channel === 'email' ? 0 : undefined,
+                                    sms: channel === 'all' || channel === 'sms' ? 0 : undefined,
+                                    whatsapp: channel === 'all' || channel === 'whatsapp' ? 0 : undefined
+                                });
+                            }
+                            const entry = map.get(d);
+                            if (entry) entry[type] = row.count;
+                        });
+                    }
                 };
 
-                addToMap(emailSeries, 'email');
-                addToMap(smsSeries, 'sms');
-                addToMap(waSeries, 'whatsapp');
+                // Only add series for the selected channel(s)
+                if (channel === 'all' || channel === 'email') addToMap(emailSeries, 'email');
+                if (channel === 'all' || channel === 'sms') addToMap(smsSeries, 'sms');
+                if (channel === 'all' || channel === 'whatsapp') addToMap(waSeries, 'whatsapp');
 
                 data = Array.from(map.values()).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
             }
