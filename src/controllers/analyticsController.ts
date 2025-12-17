@@ -123,16 +123,38 @@ export const analyticsController = {
                 const emailOpens = linksRes.filter(l => l.source === 'email').reduce((acc, curr) => acc + curr.openCount, 0);
                 const smsOpens = linksRes.filter(l => l.source === 'sms').reduce((acc, curr) => acc + curr.openCount, 0);
 
-                data = {
-                    email: { ...emailSummary, linkOpens: emailOpens },
-                    sms: { ...smsSummary, linkOpens: smsOpens },
-                    whatsapp: whatsappSummary,
+                                // Compute channel-aware overall totals
+                const overallTotal = channel === 'email' ? emailSummary.totalSent :
+                                    channel === 'sms' ? smsSummary.totalSent :
+                                    channel === 'whatsapp' ? whatsappSummary.totalSent :
+                                    (emailSummary.totalSent || 0) + (smsSummary.totalSent || 0) + (whatsappSummary.totalSent || 0);
+
+                const overallUnique = channel === 'email' ? emailSummary.uniqueCustomers :
+                                    channel === 'sms' ? smsSummary.uniqueCustomers :
+                                    channel === 'whatsapp' ? whatsappSummary.uniqueCustomers :
+                                    (emailSummary.uniqueCustomers || 0) + (smsSummary.uniqueCustomers || 0) + (whatsappSummary.uniqueCustomers || 0);
+                // In the summary view section, replace the data assignment with:
+                const result: any = {
                     overall: {
-                        totalMessages: (emailSummary.totalSent || 0) + (smsSummary.totalSent || 0) + (whatsappSummary.totalSent || 0),
-                        uniqueCustomers: (emailSummary.uniqueCustomers || 0) + (smsSummary.uniqueCustomers || 0) + (whatsappSummary.uniqueCustomers || 0) // Approximation
+                        totalMessages: overallTotal,
+                        uniqueCustomers: overallUnique
                     }
                 };
 
+                // Only include the selected channel in the response
+                if (channel === 'all') {
+                    result.email = { ...emailSummary, linkOpens: emailOpens };
+                    result.sms = { ...smsSummary, linkOpens: smsOpens };
+                    result.whatsapp = whatsappSummary;
+                } else if (channel === 'email') {
+                    result.email = { ...emailSummary, linkOpens: emailOpens };
+                } else if (channel === 'sms') {
+                    result.sms = { ...smsSummary, linkOpens: smsOpens };
+                } else if (channel === 'whatsapp') {
+                    result.whatsapp = whatsappSummary;
+                }
+
+                data = result;
             } else if (view === 'by-telecaller') {
                 // --- BY TELECALLER VIEW ---
                 // Get all telecallers and their stats
@@ -178,7 +200,7 @@ export const analyticsController = {
                         email: { sent: e.emailCount, unique: e.emailUnique },
                         sms: { sent: s.smsCount, unique: s.smsUnique },
                         whatsapp: { sent: w.waCount, unique: w.waUnique },
-                        totalSent: e.emailCount + s.smsCount + w.waCount
+                        totalSent: channel === 'email' ? e.emailCount : channel === 'sms' ? s.smsCount : channel === 'whatsapp' ? w.waCount : (e.emailCount + s.smsCount + w.waCount)
                     };
                 });
 
@@ -266,7 +288,7 @@ export const analyticsController = {
                         email: Number(c.emailCount),
                         sms: Number(c.smsCount),
                         whatsapp: Number(c.waCount),
-                        total: Number(c.emailCount) + Number(c.smsCount) + Number(c.waCount),
+                        total: channel === 'email' ? Number(c.emailCount) : channel === 'sms' ? Number(c.smsCount) : channel === 'whatsapp' ? Number(c.waCount) : (Number(c.emailCount) + Number(c.smsCount) + Number(c.waCount)),
                         lastContact: [c.lastEmail, c.lastSms, c.lastWa].filter(d => d).sort().pop() || null
                     }
                 }));
