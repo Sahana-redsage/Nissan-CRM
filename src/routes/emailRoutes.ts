@@ -10,5 +10,6 @@ router.get('/track/:id', emailController.trackEmailOpen);
 // Protected routes
 router.use(authMiddleware);
 router.post('/send-insight', emailController.sendInsightEmail);
+router.get('/logs/:id', emailController.getemailLogs);
 
 export default router;

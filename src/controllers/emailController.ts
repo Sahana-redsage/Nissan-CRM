@@ -162,5 +162,35 @@ export const emailController = {
             });
             res.end(transparentGif);
         }
-    }
+    },
+    async getemailLogs(req: AuthRequest, res: Response) {
+        try {
+            const customerId = parseInt(req.params.id);
+
+            const email = await prisma.serviceEmail.findMany({
+                where: { customerId: customerId },
+                include: {
+                    customer: true,
+                },
+            });
+
+            if (!email) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Email not found',
+                });
+            }
+
+            res.json({
+                success: true,
+                data: email,
+            });
+        } catch (error) {
+            logger.error(`Error fetching email logs:`, error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch email logs',
+            });
+        }
+    },
 };
