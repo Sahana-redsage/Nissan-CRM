@@ -20,6 +20,9 @@ import whatsappAnalyticsRoutes from './routes/whatsappAnalytics';
 import smsAnalyticsRoutes from './routes/smsAnalytics';
 import sourceMetricsRoutes from './routes/sourceMetrics';
 import analyticsRoutes from './routes/analyticsRoutes';
+import serviceCenterRoutes from './routes/serviceCenterRoutes';
+import serviceAppointmentRoutes from './routes/serviceAppointmentRoutes';
+import callbackRequestRoutes from './routes/callbackRequestRoutes';
 
 const app = express();
 
@@ -51,7 +54,11 @@ app.use('/api/sms', smsRoutes);
 app.use('/api/whatsapp-analytics', whatsappAnalyticsRoutes);
 app.use('/api/sms-analytics', smsAnalyticsRoutes);
 app.use('/api/source-metrics', sourceMetricsRoutes);
-app.use('/api/analytics',analyticsRoutes);
+app.use('/api/source-metrics', sourceMetricsRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/service-centers', serviceCenterRoutes);
+app.use('/api/service-appointments', serviceAppointmentRoutes);
+app.use('/api/callback-requests', callbackRequestRoutes);
 
 // Error handler
 app.use(errorHandler);

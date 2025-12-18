@@ -44,6 +44,7 @@ model Customer {
   lastServiceDate    DateTime?         @map("last_service_date") @db.Date
   nextServiceDueDate DateTime          @map("next_service_due_date") @db.Date
   totalMileage       Int               @default(0) @map("total_mileage")
+  prefServiceCenter  Int?              @map("pref_service_center")
   createdAt          DateTime          @default(now()) @map("created_at")
   updatedAt          DateTime          @updatedAt @map("updated_at")
   callLogs           CallLog[]
@@ -54,6 +55,9 @@ model Customer {
   smsMessages        SmsMessage[]
   serviceEmails      ServiceEmail[]
   sourceMetrics      SourceMetric[]
+  appointments       ServiceAppointment[]
+  callbackRequests   CallbackRequest[]
+  preferredServiceCenter ServiceCenter? @relation("PreferredServiceCenter", fields: [prefServiceCenter], references: [id])
   @@index([nextServiceDueDate])
   @@index([vehicleNumber])
   @@map("customers")
@@ -209,4 +213,53 @@ model SourceMetric {
   @@index([source])
   @@index([customerId])
   @@map("source_metrics")
+}
+
+model ServiceCenter {
+  id          Int      @id @default(autoincrement())
+  name        String
+  address     String
+  email       String
+  phoneNo     String   @map("phone_no")
+  website     String
+  mapsLink    String   @map("maps_link")
+  
+  appointments ServiceAppointment[]
+  callbackRequests CallbackRequest[]
+  preferredByCustomers Customer[] @relation("PreferredServiceCenter")
+
+  @@map("service_centers")
+}
+
+model ServiceAppointment {
+  id            Int      @id @default(autoincrement())
+  customerId    Int      @map("customer_id")
+  serviceCenterId Int    @map("service_center")
+  createdAt     DateTime @default(now()) @map("created_at")
+  slot          DateTime
+  isPreferred   Boolean? @map("is_preferred")
+  reason        String?
+  serviceType   String?  @map("service_type")
+  odometer      Int?
+  status        String?
+  isCancelled   Boolean  @default(false) @map("is_cancelled")
+
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  serviceCenter ServiceCenter @relation(fields: [serviceCenterId], references: [id])
+
+  @@map("service_appointments")
+}
+
+model CallbackRequest {
+  id              Int       @id @default(autoincrement())
+  customerId      Int?      @map("customer_id")
+  serviceCenterId Int?      @map("service_center")
+  requestedAt     DateTime? @default(now()) @map("requested_at")
+  status          String?
+  updatedAt       DateTime? @updatedAt @map("updated_at")
+
+  customer        Customer?      @relation(fields: [customerId], references: [id])
+  serviceCenter   ServiceCenter? @relation(fields: [serviceCenterId], references: [id])
+
+  @@map("callback_requests")
 }
