@@ -264,6 +264,11 @@ async function sendAppointmentNotification(
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
 
+    // Generate Dashboard Link
+    const linkRef = `appt_${type}_${Date.now()}_${customer.id}`;
+    const dashboardUrl = `https://nissancall-fe.vercel.app/customer-view/${customer.id}?source=email&ref=${linkRef}`;
+    const smsUrl = `https://nissancall-fe.vercel.app/customer-view/${customer.id}?source=sms&ref=${linkRef}`;
+
     // Construct Message Content
     let subject = '';
     let emailBody = '';
@@ -304,6 +309,19 @@ async function sendAppointmentNotification(
         color: #666;
     `;
 
+    const linkHtml = `
+        <br>
+        <p style="text-align: center;">
+            <a href="${dashboardUrl}" 
+               style="display: inline-block; padding: 12px 24px; background-color: #C3002F; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+                View Appointment Dashboard
+            </a>
+        </p>
+        <p style="text-align: center; font-size: 12px; color: #666;">
+            Or visit: <a href="${dashboardUrl}" style="color: #666;">${dashboardUrl}</a>
+        </p>
+    `;
+
     switch (type) {
         case 'create':
             subject = 'Nissan Service Appointment Confirmed';
@@ -326,6 +344,8 @@ async function sendAppointmentNotification(
                             ${centerDetails}
                         </div>
                         
+                        ${linkHtml}
+                        
                         <p>If you need to reschedule or cancel, please contact us or visit your dashboard.</p>
                     </div>
                     <div style="${footerStyle}">
@@ -333,7 +353,7 @@ async function sendAppointmentNotification(
                     </div>
                 </div>
             `;
-            smsBody = `Nissan Service: Appointment Confirmed!\nDate: ${formattedDate}\nCenter: ${serviceCenter.name}\nLoc: ${serviceCenter.googleMapLink || serviceCenter.address}\nWe look forward to serving you!`;
+            smsBody = `Nissan Service: Appointment Confirmed!\nDate: ${formattedDate}\nCenter: ${serviceCenter.name}\nLoc: ${serviceCenter.googleMapLink || serviceCenter.address}\n\nView details: ${smsUrl}`;
             break;
 
         case 'update':
@@ -356,13 +376,15 @@ async function sendAppointmentNotification(
                             <h3 style="margin-bottom:5px; color: #C3002F;">Service Center</h3>
                             ${centerDetails}
                         </div>
+
+                        ${linkHtml}
                     </div>
                     <div style="${footerStyle}">
                         &copy; ${new Date().getFullYear()} Nissan Service. All rights reserved.
                     </div>
                 </div>
             `;
-            smsBody = `Nissan Service: Appointment Updated.\nNew Details: ${formattedDate}\nCenter: ${serviceCenter.name}\nCheck dashboard for full info.`;
+            smsBody = `Nissan Service: Appointment Updated.\nNew Details: ${formattedDate}\nCenter: ${serviceCenter.name}\n\nView details: ${smsUrl}`;
             break;
 
         case 'reschedule':
@@ -383,13 +405,15 @@ async function sendAppointmentNotification(
                             <h3 style="margin-bottom:5px; color: #C3002F;">Service Center</h3>
                             ${centerDetails}
                         </div>
+
+                        ${linkHtml}
                     </div>
                     <div style="${footerStyle}">
                         &copy; ${new Date().getFullYear()} Nissan Service. All rights reserved.
                     </div>
                 </div>
             `;
-            smsBody = `Nissan Service: Appointment Rescheduled.\nNew Time: ${formattedDate}\nCenter: ${serviceCenter.name}\nSee you then!`;
+            smsBody = `Nissan Service: Appointment Rescheduled.\nNew Time: ${formattedDate}\nCenter: ${serviceCenter.name}\nSee you then!\n\nView details: ${smsUrl}`;
             break;
 
         case 'cancel':
@@ -403,13 +427,15 @@ async function sendAppointmentNotification(
                         <p>Dear ${customer.customerName},</p>
                         <p>Your service appointment for <strong>${formattedDate}</strong> at <strong>${serviceCenter.name}</strong> has been cancelled.</p>
                         <p>If this was a mistake or you'd like to book a new appointment, please visit our website or contact support.</p>
+                        
+                        ${linkHtml}
                     </div>
                     <div style="${footerStyle}">
                         &copy; ${new Date().getFullYear()} Nissan Service. All rights reserved.
                     </div>
                 </div>
             `;
-            smsBody = `Nissan Service: Appointment Cancelled.\nRef: ${formattedDate} at ${serviceCenter.name}.\nContact us to rebook.`;
+            smsBody = `Nissan Service: Appointment Cancelled.\nRef: ${formattedDate} at ${serviceCenter.name}.\n\nRebook here: ${smsUrl}`;
             break;
     }
 
@@ -432,13 +458,22 @@ async function sendAppointmentNotification(
     const phone = customer.phone || customer.alternatePhone;
     if (phone) {
         try {
-            await twilioClient.messages.create({
+            logger.info(`Attempting to send SMS to ${phone} for appointment ${appointmentId}`);
+
+            // Validate and format phone number
+            let formattedPhone = phone.trim();
+            // Assuming Indian numbers if 10 digits provided without code. Adjust logic as per region requirements.
+            if (/^\d{10}$/.test(formattedPhone)) {
+                formattedPhone = `+91${formattedPhone}`;
+            }
+
+            const message = await twilioClient.messages.create({
                 body: smsBody,
                 from: config.twilio.phoneNumber,
-                to: phone,
+                to: formattedPhone,
                 riskCheck: 'disable'
             } as any);
-            logger.info(`Appointment notification SMS sent to ${phone}`);
+            logger.info(`Appointment notification SMS sent to ${formattedPhone}. SID: ${message.sid}`);
         } catch (error) {
             logger.error(`Failed to send SMS to ${phone}:`, error);
         }
