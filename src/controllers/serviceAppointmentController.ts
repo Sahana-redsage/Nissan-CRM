@@ -277,8 +277,8 @@ async function sendAppointmentNotification(
     const centerDetails = `
         <strong>${serviceCenter.name}</strong><br>
         ${serviceCenter.address || ''}<br>
-        Phone: ${serviceCenter.phone || 'N/A'}<br>
-        ${serviceCenter.googleMapLink ? `<a href="${serviceCenter.googleMapLink}">View on Map</a>` : ''}
+        Phone: ${serviceCenter.phoneNo || 'N/A'}<br>
+        ${serviceCenter.mapsLink ? `<a href="${serviceCenter.mapsLink}">View on Map</a>` : ''}
     `;
 
     const commonStyles = `
@@ -353,7 +353,7 @@ async function sendAppointmentNotification(
                     </div>
                 </div>
             `;
-            smsBody = `Nissan Service: Appointment Confirmed!\nDate: ${formattedDate}\nCenter: ${serviceCenter.name}\nLoc: ${serviceCenter.googleMapLink || serviceCenter.address}\n\nView details: ${smsUrl}`;
+            smsBody = `Nissan Service: Appointment Confirmed!\nDate: ${formattedDate}\nCenter: ${serviceCenter.name}\nLoc: ${serviceCenter.mapsLink || serviceCenter.address}\n\nView details: ${smsUrl}`;
             break;
 
         case 'update':
@@ -413,7 +413,7 @@ async function sendAppointmentNotification(
                     </div>
                 </div>
             `;
-            smsBody = `Nissan Service: Appointment Rescheduled.\nNew Time: ${formattedDate}\nCenter: ${serviceCenter.name}\nSee you then!\n\nView details: ${smsUrl}`;
+            smsBody = `Nissan Service: Appointment Rescheduled.\nNew Time: ${formattedDate}\nCenter: ${serviceCenter.name}\nLoc: ${serviceCenter.mapsLink || serviceCenter.address}\n\nView details: ${smsUrl}`;
             break;
 
         case 'cancel':
