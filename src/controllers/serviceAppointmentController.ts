@@ -2,6 +2,20 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../config/database';
 import { logger } from '../utils/logger';
+import nodemailer from 'nodemailer';
+import twilio from 'twilio';
+import { config } from '../config/env';
+
+// Configure clients
+const transporter = nodemailer.createTransport({
+    service: 'outlook',
+    auth: {
+        user: config.email.user,
+        pass: config.email.pass,
+    },
+});
+
+const twilioClient = twilio(config.twilio.accountSid, config.twilio.authToken);
 
 export const serviceAppointmentController = {
     async createAppointment(req: AuthRequest, res: Response) {
@@ -44,6 +58,11 @@ export const serviceAppointmentController = {
 
                 return appointment;
             });
+
+            // Send notification asynchronously
+            sendAppointmentNotification('create', result.id).catch((err: any) =>
+                logger.error('Failed to send appointment creation notification:', err)
+            );
 
             res.status(201).json({
                 success: true,
@@ -111,6 +130,11 @@ export const serviceAppointmentController = {
                 }
             });
 
+            // Send notification asynchronously
+            sendAppointmentNotification('update', appointment.id).catch((err: any) =>
+                logger.error('Failed to send appointment update notification:', err)
+            );
+
             res.json({
                 success: true,
                 data: appointment
@@ -140,6 +164,11 @@ export const serviceAppointmentController = {
                 }
             });
 
+            // Send notification asynchronously
+            sendAppointmentNotification('reschedule', appointment.id).catch((err: any) =>
+                logger.error('Failed to send appointment reschedule notification:', err)
+            );
+
             res.json({
                 success: true,
                 data: appointment
@@ -164,6 +193,11 @@ export const serviceAppointmentController = {
                     status: 'cancelled'
                 }
             });
+
+            // Send notification asynchronously
+            sendAppointmentNotification('cancel', appointment.id).catch((err: any) =>
+                logger.error('Failed to send appointment cancellation notification:', err)
+            );
 
             res.json({
                 success: true,
@@ -205,3 +239,208 @@ export const serviceAppointmentController = {
         }
     }
 };
+
+// Helper function to send notifications
+async function sendAppointmentNotification(
+    type: 'create' | 'update' | 'reschedule' | 'cancel',
+    appointmentId: number
+) {
+    // Fetch full appointment details
+    const appointment = await prisma.serviceAppointment.findUnique({
+        where: { id: appointmentId },
+        include: {
+            customer: true,
+            serviceCenter: true
+        }
+    });
+
+    if (!appointment || !appointment.customer || !appointment.serviceCenter) {
+        logger.warn(`Could not fetch details for appointment ${appointmentId} notification`);
+        return;
+    }
+
+    const { customer, serviceCenter, slot, serviceType } = appointment;
+    const formattedDate = new Date(slot).toLocaleString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+
+    // Construct Message Content
+    let subject = '';
+    let emailBody = '';
+    let smsBody = '';
+
+    const centerDetails = `
+        <strong>${serviceCenter.name}</strong><br>
+        ${serviceCenter.address || ''}<br>
+        Phone: ${serviceCenter.phone || 'N/A'}<br>
+        ${serviceCenter.googleMapLink ? `<a href="${serviceCenter.googleMapLink}">View on Map</a>` : ''}
+    `;
+
+    const commonStyles = `
+        font-family: Arial, sans-serif; 
+        color: #333; 
+        line-height: 1.6;
+        max-width: 600px;
+        margin: 0 auto;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+    `;
+
+    const headerStyle = `
+        background-color: #C3002F; 
+        color: white; 
+        padding: 20px; 
+        text-align: center;
+    `;
+
+    const contentStyle = `padding: 20px;`;
+
+    const footerStyle = `
+        background-color: #f5f5f5; 
+        padding: 15px; 
+        text-align: center; 
+        font-size: 12px; 
+        color: #666;
+    `;
+
+    switch (type) {
+        case 'create':
+            subject = 'Nissan Service Appointment Confirmed';
+            emailBody = `
+                <div style="${commonStyles}">
+                    <div style="${headerStyle}">
+                        <h2 style="margin:0;">Appointment Confirmed</h2>
+                    </div>
+                    <div style="${contentStyle}">
+                        <p>Dear ${customer.customerName},</p>
+                        <p>Your service appointment has been successfully booked. We look forward to seeing you.</p>
+                        
+                        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 4px; margin: 20px 0;">
+                            <h3 style="margin-top:0; color: #C3002F;">Appointment Details</h3>
+                            <p><strong>Date & Time:</strong> ${formattedDate}</p>
+                            <p><strong>Service Type:</strong> ${serviceType || 'General Service'}</p>
+                            <p><strong>Vehicle:</strong> ${customer.vehicleMake} ${customer.vehicleModel} (${customer.vehicleNumber})</p>
+                            
+                            <h3 style="margin-bottom:5px; color: #C3002F;">Service Center</h3>
+                            ${centerDetails}
+                        </div>
+                        
+                        <p>If you need to reschedule or cancel, please contact us or visit your dashboard.</p>
+                    </div>
+                    <div style="${footerStyle}">
+                        &copy; ${new Date().getFullYear()} Nissan Service. All rights reserved.
+                    </div>
+                </div>
+            `;
+            smsBody = `Nissan Service: Appointment Confirmed!\nDate: ${formattedDate}\nCenter: ${serviceCenter.name}\nLoc: ${serviceCenter.googleMapLink || serviceCenter.address}\nWe look forward to serving you!`;
+            break;
+
+        case 'update':
+            subject = 'Nissan Service Appointment Updated';
+            emailBody = `
+                <div style="${commonStyles}">
+                    <div style="${headerStyle}">
+                        <h2 style="margin:0;">Appointment Updated</h2>
+                    </div>
+                    <div style="${contentStyle}">
+                        <p>Dear ${customer.customerName},</p>
+                        <p>Your service appointment details have been updated.</p>
+                        
+                        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 4px; margin: 20px 0;">
+                            <h3 style="margin-top:0; color: #C3002F;">Updated Details</h3>
+                            <p><strong>Date & Time:</strong> ${formattedDate}</p>
+                            <p><strong>Service Type:</strong> ${serviceType || 'General Service'}</p>
+                            <p><strong>Status:</strong> ${appointment.status}</p>
+                            
+                            <h3 style="margin-bottom:5px; color: #C3002F;">Service Center</h3>
+                            ${centerDetails}
+                        </div>
+                    </div>
+                    <div style="${footerStyle}">
+                        &copy; ${new Date().getFullYear()} Nissan Service. All rights reserved.
+                    </div>
+                </div>
+            `;
+            smsBody = `Nissan Service: Appointment Updated.\nNew Details: ${formattedDate}\nCenter: ${serviceCenter.name}\nCheck dashboard for full info.`;
+            break;
+
+        case 'reschedule':
+            subject = 'Nissan Service Appointment Rescheduled';
+            emailBody = `
+                <div style="${commonStyles}">
+                    <div style="${headerStyle}">
+                        <h2 style="margin:0;">Appointment Rescheduled</h2>
+                    </div>
+                    <div style="${contentStyle}">
+                        <p>Dear ${customer.customerName},</p>
+                        <p>Your service appointment has been rescheduled to a new time.</p>
+                        
+                        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 4px; margin: 20px 0;">
+                            <h3 style="margin-top:0; color: #C3002F;">New Time</h3>
+                            <p><strong>Date & Time:</strong> ${formattedDate}</p>
+                            
+                            <h3 style="margin-bottom:5px; color: #C3002F;">Service Center</h3>
+                            ${centerDetails}
+                        </div>
+                    </div>
+                    <div style="${footerStyle}">
+                        &copy; ${new Date().getFullYear()} Nissan Service. All rights reserved.
+                    </div>
+                </div>
+            `;
+            smsBody = `Nissan Service: Appointment Rescheduled.\nNew Time: ${formattedDate}\nCenter: ${serviceCenter.name}\nSee you then!`;
+            break;
+
+        case 'cancel':
+            subject = 'Nissan Service Appointment Cancelled';
+            emailBody = `
+                <div style="${commonStyles}">
+                    <div style="${headerStyle}">
+                        <h2 style="margin:0;">Appointment Cancelled</h2>
+                    </div>
+                    <div style="${contentStyle}">
+                        <p>Dear ${customer.customerName},</p>
+                        <p>Your service appointment for <strong>${formattedDate}</strong> at <strong>${serviceCenter.name}</strong> has been cancelled.</p>
+                        <p>If this was a mistake or you'd like to book a new appointment, please visit our website or contact support.</p>
+                    </div>
+                    <div style="${footerStyle}">
+                        &copy; ${new Date().getFullYear()} Nissan Service. All rights reserved.
+                    </div>
+                </div>
+            `;
+            smsBody = `Nissan Service: Appointment Cancelled.\nRef: ${formattedDate} at ${serviceCenter.name}.\nContact us to rebook.`;
+            break;
+    }
+
+    // Send Email
+    if (customer.email) {
+        try {
+            await transporter.sendMail({
+                from: `"${config.email.fromName}" <${config.email.user}>`,
+                to: customer.email,
+                subject,
+                html: emailBody
+            });
+            logger.info(`Appointment notification email sent to ${customer.email}`);
+        } catch (error) {
+            logger.error(`Failed to send email to ${customer.email}:`, error);
+        }
+    }
+
+    // Send SMS
+    const phone = customer.phone || customer.alternatePhone;
+    if (phone) {
+        try {
+            await twilioClient.messages.create({
+                body: smsBody,
+                from: config.twilio.phoneNumber,
+                to: phone,
+                riskCheck: 'disable'
+            } as any);
+            logger.info(`Appointment notification SMS sent to ${phone}`);
+        } catch (error) {
+            logger.error(`Failed to send SMS to ${phone}:`, error);
+        }
+    }
+}
