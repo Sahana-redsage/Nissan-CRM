@@ -77,10 +77,21 @@ export const twilioController = {
       if (toNumber && toNumber.startsWith("+")) {
         console.log(`✅ Dialing ${toNumber} with CallerId: ${config.twilioNumber}`);
 
+        // 🔊 Verification: If you hear this, our code is working!
+        twiml.say("Connecting call. Recording started.");
+
         const dial = twiml.dial({
-          callerId: config.twilioNumber, // Must be your Twilio number
-          answerOnBridge: true
+          callerId: config.twilioNumber,
+          answerOnBridge: true,
+          record: 'record-from-ringing-dual', // ⏺️ Stronger recording trigger
+          trim: 'trim-silence'
         });
+
+        // Add callback only if baseUrl is valid
+        if (config.baseUrl && config.baseUrl.startsWith('http')) {
+          (dial as any).recordingStatusCallback = `${config.baseUrl}/api/calls/recording-status`;
+          (dial as any).recordingStatusCallbackMethod = 'POST';
+        }
         dial.number(toNumber);
       } else {
         console.log(`❌ No valid phone number provided. To=${toNumber}`);
@@ -101,49 +112,109 @@ export const twilioController = {
   },
 
   // ======================================================
-// 4️⃣ Get Call Logs from Twilio
-// ======================================================
-getCallLogs: async (req: Request, res: Response) => {
-  try {
-    const client = twilio(
-      config.accountSid,
-      process.env.TWILIO_AUTH_TOKEN // use Auth Token for REST reads
-    );
+  // 4️⃣ Get Call Logs from Twilio
+  // ======================================================
+  getCallLogs: async (req: Request, res: Response) => {
+    try {
+      const client = twilio(
+        config.accountSid,
+        process.env.TWILIO_AUTH_TOKEN // use Auth Token for REST reads
+      );
 
-    // Optional query params
-    const { limit = 20 } = req.query;
+      // Optional query params
+      const { limit = 20 } = req.query;
 
-    const calls = await client.calls.list({
-      limit: Number(limit)
-    });
+      const calls = await client.calls.list({
+        limit: Number(limit)
+      });
 
-    const logs = calls.map(call => ({
-      callSid: call.sid,
-      from: call.from,
-      to: call.to,
-      status: call.status,
-      direction: call.direction,
-      duration: call.duration,
-      startTime: call.startTime,
-      endTime: call.endTime,
-      price: call.price,
-      priceUnit: call.priceUnit
-    }));
+      const logs = calls.map(call => ({
+        callSid: call.sid,
+        from: call.from,
+        to: call.to,
+        status: call.status,
+        direction: call.direction,
+        duration: call.duration,
+        startTime: call.startTime,
+        endTime: call.endTime,
+        price: call.price,
+        priceUnit: call.priceUnit
+      }));
 
-    res.status(200).json({
-      success: true,
-      data: logs
-    });
-  } catch (error: any) {
-    console.error("❌ Error fetching call logs:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch call logs",
-      error: error.message
-    });
-  }
-}
-,
+      res.status(200).json({
+        success: true,
+        data: logs
+      });
+    } catch (error: any) {
+      console.error("❌ Error fetching call logs:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch call logs",
+        error: error.message
+      });
+    }
+  },
+
+  // ======================================================
+  // 5️⃣ Get Recordings from Twilio
+  // ======================================================
+  getRecordings: async (req: Request, res: Response) => {
+    try {
+      const client = twilio(config.accountSid, process.env.TWILIO_AUTH_TOKEN);
+      const { callSid } = req.query;
+
+      let recordings;
+      if (callSid) {
+        recordings = await client.recordings.list({ callSid: callSid as string });
+      } else {
+        recordings = await client.recordings.list({ limit: 20 });
+      }
+
+      const data = recordings.map(rec => ({
+        sid: rec.sid,
+        callSid: rec.callSid,
+        duration: rec.duration,
+        status: rec.status,
+        dateCreated: rec.dateCreated,
+        url: `/api/calls/recordings/${rec.sid}/play`
+      }));
+
+      res.status(200).json({ success: true, data });
+    } catch (error: any) {
+      console.error("❌ Error fetching recordings:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
+
+
+  // ======================================================
+  // 7️⃣ Play/Stream Recording Proxy
+  // ======================================================
+  playRecording: async (req: Request, res: Response) => {
+    try {
+      const { sid } = req.params;
+      const client = twilio(config.accountSid, process.env.TWILIO_AUTH_TOKEN);
+
+      const recording = await client.recordings(sid).fetch();
+
+      // Redirect to the Twilio MP3 URL
+      const mp3Url = `https://api.twilio.com2010-04-01/Accounts/${config.accountSid}/Recordings/${sid}.mp3`;
+      res.redirect(mp3Url);
+    } catch (error: any) {
+      console.error("❌ Error playing recording:", error);
+      res.status(404).send("Recording not found");
+    }
+  },
+
+  // ======================================================
+  // 6️⃣ Recording Status Callback
+  // ======================================================
+  recordingStatus: (req: Request, res: Response) => {
+    const { RecordingUrl, RecordingSid, CallSid } = req.body;
+    console.log(`⏺️ Recording Ready: CallSid=${CallSid}, URL=${RecordingUrl}`);
+    res.sendStatus(200);
+  },
 
   // ======================================================
   // 3️⃣ Call Status Callback
