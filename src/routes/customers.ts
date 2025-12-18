@@ -6,8 +6,6 @@ import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
-router.use(authMiddleware);
-
 router.get('/due-for-service', customerController.getDueForService);
 router.get('/:id', customerController.getById);
 router.get('/:id/appointments', serviceAppointmentController.getCustomerAppointments);
