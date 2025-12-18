@@ -5,6 +5,7 @@ interface Config {
   port: number;
   nodeEnv: string;
   jwtSecret: string;
+  baseUrl: string;
   jwtExpiry: string;
   frontendUrl: string;
   backendUrl: string;
@@ -35,6 +36,7 @@ export const config: Config = {
   port: parseInt(process.env.PORT || '5000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
   jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
+  baseUrl: process.env.BASE_URL || 'http://localhost:5001',
   jwtExpiry: process.env.JWT_EXPIRY || '7d',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
   gemini: {

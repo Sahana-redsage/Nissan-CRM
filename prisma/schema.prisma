@@ -111,6 +111,7 @@ model CallLog {
   followUpDate     DateTime?  @map("follow_up_date") @db.Date
   serviceBooked    Boolean    @default(false) @map("service_booked")
   bookingDate      DateTime?  @map("booking_date") @db.Date
+  transcript       String?
   customer         Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
   telecaller       Telecaller @relation(fields: [telecallerId], references: [id])
  

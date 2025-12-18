@@ -11,6 +11,7 @@ router.get("/logs", twilioController.getCallLogs);
 router.get("/recordings", twilioController.getRecordings);
 router.get("/recordings/:sid/play", twilioController.playRecording);
 router.post("/recording-status", twilioController.recordingStatus);
+router.post("/transcription-status", twilioController.transcriptionStatus);
 
 
 export default router;
