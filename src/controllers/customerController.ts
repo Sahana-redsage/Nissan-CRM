@@ -4,6 +4,41 @@ import prisma from '../config/database';
 import { logger } from '../utils/logger';
 
 export const customerController = {
+
+   async getAll(req: AuthRequest, res: Response) {
+    try {
+      const customers = await prisma.customer.findMany({
+        orderBy: {
+          customerName: 'asc',
+        },
+      });
+
+      const today = new Date();
+      const customersWithDays = customers.map((customer) => {
+        const daysUntilDue = Math.ceil(
+          (customer.nextServiceDueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        return {
+          ...customer,
+          daysUntilDue,
+        };
+      });
+
+      res.json({
+        success: true,
+        data: customersWithDays,
+        count: customersWithDays.length,
+      });
+    } catch (error: any) {
+      logger.error('Error fetching all customers:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch all customers',
+      });
+    }
+  },
+  
   async getDueForService(req: AuthRequest, res: Response) {
     try {
       const days = parseInt(req.query.days as string) || 7;
@@ -159,5 +194,4 @@ export const customerController = {
   },
 
 };
-
 

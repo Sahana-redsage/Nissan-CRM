@@ -262,4 +262,44 @@ Instructions:
     }
   },
 
+  async generateSentimentAnalysis(transcript: string): Promise<{ sentiment: string; score: number }> {
+    const prompt = `Analyze the sentiment of the following call transcript between a telecaller and a customer. 
+Return ONLY valid JSON (NO markdown blocks, NO explanatory text):
+{
+  "sentiment": "Positive/Negative/Neutral",
+  "score": number (where 1.0 is very positive and -1.0 is very negative)
+}
+
+TRANSCRIPT:
+${transcript}`;
+
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 200,
+      },
+    });
+
+    try {
+      const result = await model.generateContent(prompt);
+      let rawResponse = result.response.text();
+
+      // Clean up response
+      rawResponse = rawResponse
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+
+      const parsed = JSON.parse(rawResponse);
+      return {
+        sentiment: parsed.sentiment || 'Neutral',
+        score: typeof parsed.score === 'number' ? parsed.score : 0,
+      };
+    } catch (error) {
+      console.error('Error generating sentiment analysis:', error);
+      return { sentiment: 'Neutral', score: 0 };
+    }
+  },
+
 }

@@ -112,6 +112,8 @@ model CallLog {
   serviceBooked    Boolean    @default(false) @map("service_booked")
   bookingDate      DateTime?  @map("booking_date") @db.Date
   transcript       String?
+  sentimentAnalysis String?    @map("sentiment_analysis")
+  sentimentScore   Float?     @map("sentiment_score")
   customer         Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
   telecaller       Telecaller @relation(fields: [telecallerId], references: [id])
  

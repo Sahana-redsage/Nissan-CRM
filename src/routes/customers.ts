@@ -5,7 +5,7 @@ import { callbackRequestController } from '../controllers/callbackRequestControl
 import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
-
+router.get('/', customerController.getAll); 
 router.get('/due-for-service', customerController.getDueForService);
 router.get('/:id', customerController.getById);
 router.get('/:id/appointments', serviceAppointmentController.getCustomerAppointments);
