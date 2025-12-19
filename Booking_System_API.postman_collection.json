@@ -578,6 +578,48 @@
                     "response": []
                 }
             ]
+        },
+        {
+            "name": "Call Logs",
+            "item": [
+                {
+                    "name": "Manual Call Log",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"customerId\": 1,\n  \"telecallerId\": 1,\n  \"callDate\": \"2025-12-19T10:00:00Z\",\n  \"callStatus\": \"connected\",\n  \"callDuration\": 120,\n  \"notes\": \"Strong interest in major service next week\",\n  \"followUpRequired\": true,\n  \"followUpDate\": \"2025-12-22\",\n  \"serviceBooked\": false\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/api/calls/manual-log",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "api",
+                                "calls",
+                                "manual-log"
+                            ]
+                        },
+                        "description": "Manually log a call that wasn't tracked via Twilio."
+                    },
+                    "response": []
+                }
+            ]
         }
     ],
     "variable": [
