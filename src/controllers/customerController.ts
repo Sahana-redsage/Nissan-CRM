@@ -5,7 +5,7 @@ import { logger } from '../utils/logger';
 
 export const customerController = {
 
-   async getAll(req: AuthRequest, res: Response) {
+  async getAll(req: AuthRequest, res: Response) {
     try {
       const customers = await prisma.customer.findMany({
         orderBy: {
@@ -38,7 +38,7 @@ export const customerController = {
       });
     }
   },
-  
+
   async getDueForService(req: AuthRequest, res: Response) {
     try {
       const days = parseInt(req.query.days as string) || 7;
@@ -120,13 +120,18 @@ export const customerController = {
         });
       }
 
+      const recentCalls = customer.callLogs.map(log => ({
+        ...log,
+        recordingUrl: log.recordingSid ? `/api/calls/recordings/${log.recordingSid}/play` : log.recordingUrl
+      }));
+
       res.json({
         success: true,
         data: {
           ...customer,
           documents: customer.serviceDocuments,
           latestInsights: customer.serviceInsights[0] || null,
-          recentCalls: customer.callLogs,
+          recentCalls: recentCalls,
           insightId: customer.serviceInsights[0]?.id || null,
         },
       });
@@ -175,13 +180,18 @@ export const customerController = {
         });
       }
 
+      const recentCalls = customer.callLogs.map(log => ({
+        ...log,
+        recordingUrl: log.recordingSid ? `/api/calls/recordings/${log.recordingSid}/play` : log.recordingUrl
+      }));
+
       res.json({
         success: true,
         data: {
           ...customer,
           documents: customer.serviceDocuments,
           latestInsights: customer.serviceInsights[0] || null,
-          recentCalls: customer.callLogs,
+          recentCalls: recentCalls,
         },
       });
     } catch (error: any) {

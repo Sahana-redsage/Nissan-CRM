@@ -292,7 +292,7 @@ export const twilioController = {
           status: log.callStatus,
           dateCreated: log.callDate,
           url: log.recordingSid ? `/api/calls/recordings/${log.recordingSid}/play` : null,
-          recordingUrl: log.recordingUrl,
+          recordingUrl: log.recordingSid ? `/api/calls/recordings/${log.recordingSid}/play` : null,
           transcript: log.transcript,
           sentimentAnalysis: (log as any).sentimentAnalysis,
           sentimentScore: (log as any).sentimentScore
