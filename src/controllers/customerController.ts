@@ -222,18 +222,13 @@ export const customerController = {
         });
       }
 
-      const recentCalls = customer.callLogs.map(log => ({
-        ...log,
-        recordingUrl: log.recordingSid ? `/api/calls/recordings/${log.recordingSid}/play` : log.recordingUrl
-      }));
-
       res.json({
         success: true,
         data: {
           ...customer,
           documents: customer.serviceDocuments,
           latestInsights: customer.serviceInsights[0] || null,
-          recentCalls: recentCalls,
+          recentCalls: customer.callLogs,
           insightId: customer.serviceInsights[0]?.id || null,
         },
       });
@@ -282,18 +277,13 @@ export const customerController = {
         });
       }
 
-      const recentCalls = customer.callLogs.map(log => ({
-        ...log,
-        recordingUrl: log.recordingSid ? `/api/calls/recordings/${log.recordingSid}/play` : log.recordingUrl
-      }));
-
       res.json({
         success: true,
         data: {
           ...customer,
           documents: customer.serviceDocuments,
           latestInsights: customer.serviceInsights[0] || null,
-          recentCalls: recentCalls,
+          recentCalls: customer.callLogs,
         },
       });
     } catch (error: any) {
@@ -306,3 +296,4 @@ export const customerController = {
   },
 
 };
+
