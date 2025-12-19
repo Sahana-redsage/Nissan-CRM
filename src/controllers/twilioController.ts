@@ -278,13 +278,13 @@ export const twilioController = {
   getRecordings: async (req: Request, res: Response) => {
     try {
       const { customerId, callSid } = req.query;
-
+      console.log(customerId, callSid);
       if (customerId) {
         const logs = await prisma.callLog.findMany({
           where: { customerId: Number(customerId) },
           orderBy: { callDate: 'desc' }
         });
-
+        console.log(logs);
         const data = logs.map(log => ({
           sid: log.recordingSid,
           callSid: log.callSid,
@@ -422,9 +422,10 @@ export const twilioController = {
         Track                   // Track info: inbound_track (agent) vs outbound_track (customer)
       } = req.body;
 
+      console.log('hi');
       let transcriptText = '';
       let callSidToUpdate = CallSid;
-
+      let recordingSidToUpdate = req.body.RecordingSid;
       // Handle real-time transcription events
       if (TranscriptionEvent === 'transcription-content') {
         let rawText = '';
@@ -529,5 +530,3 @@ export const twilioController = {
     res.status(501).json({ message: "Not implemented. Use client-side initiation." });
   }
 };
-
-
