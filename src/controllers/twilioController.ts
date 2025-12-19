@@ -395,29 +395,8 @@ export const twilioController = {
         console.log(`✅ Updated CallLog ${callLog.id} with recording URL`);
       }
 
-      // 2. Trigger Transcription (Because <Dial> doesn't auto-transcribe)
-      const client = twilio(config.accountSid, config.apiSecret); // Using API Key/Secret
-
-      if (config.baseUrl && config.baseUrl.startsWith('http')) {
-        console.log(`📝 Requesting Transcription for Recording: ${RecordingSid}`);
-        console.log(`📝 Callback URL: ${config.baseUrl}/api/calls/transcription-status`);
-        try {
-          const response = await client.request({
-            method: "post",
-            uri: `/2010-04-01/Accounts/${config.accountSid}/Recordings/${RecordingSid}/Transcriptions.json`,
-            form: {
-              TranscriptionStatusCallback: `${config.baseUrl}/api/calls/transcription-status`,
-              TranscriptionStatusCallbackMethod: 'POST',
-            },
-          } as any);
-          console.log(`✅ Transcription request successful:`, JSON.stringify(response.body, null, 2));
-        } catch (trxError: any) {
-          console.error("❌ Failed to trigger transcription:", trxError?.message || trxError);
-          if (trxError?.response?.body) {
-            console.error("   Twilio Error Details:", JSON.stringify(trxError.response.body, null, 2));
-          }
-        }
-      }
+      // NOTE: We don't need to trigger a second transcription here because 
+      // the <Start><Transcription> in voiceResponse is already capturing real-time dual-track transcripts.
 
       res.sendStatus(200);
     } catch (error) {
@@ -439,7 +418,8 @@ export const twilioController = {
         TranscriptionEvent,
         TranscriptionData,
         TranscriptionText,      // Legacy format
-        TranscriptionStatus     // Legacy format
+        TranscriptionStatus,    // Legacy format
+        Track                   // Track info: inbound_track (agent) vs outbound_track (customer)
       } = req.body;
 
       let transcriptText = '';
@@ -447,24 +427,30 @@ export const twilioController = {
 
       // Handle real-time transcription events
       if (TranscriptionEvent === 'transcription-content') {
-        // TranscriptionData contains the actual transcript
-        // NOTE: It might be a JSON string!
+        let rawText = '';
         try {
           if (TranscriptionData && typeof TranscriptionData === 'string' && TranscriptionData.startsWith('{')) {
             const parsed = JSON.parse(TranscriptionData);
-            transcriptText = parsed.transcript || '';
+            rawText = parsed.transcript || '';
           } else {
-            transcriptText = TranscriptionData || '';
+            rawText = TranscriptionData || '';
           }
         } catch (e) {
           console.warn("⚠️ Failed to parse TranscriptionData as JSON, using raw data:", e);
-          transcriptText = TranscriptionData || '';
+          rawText = TranscriptionData || '';
         }
-        console.log(`📝 Real-time transcript: "${transcriptText}"`);
+
+        if (rawText.trim()) {
+          // Label the speaker based on the track
+          const label = (Track === 'inbound_track') ? 'Agent' : 'Customer';
+          transcriptText = `[${label}]: ${rawText.trim()}`;
+        }
+
+        console.log(`📝 Real-time transcript (${Track}): "${transcriptText}"`);
       }
       // Handle legacy transcription format
       else if (TranscriptionStatus === 'completed' && TranscriptionText) {
-        transcriptText = TranscriptionText;
+        transcriptText = `[Call Summary]: ${TranscriptionText}`;
         console.log(`📝 Legacy transcript: "${transcriptText}"`);
       }
 
