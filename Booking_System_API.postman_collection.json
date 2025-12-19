@@ -7,6 +7,49 @@
     },
     "item": [
         {
+            "name": "Customers",
+            "item": [
+                {
+                    "name": "Get All Customers",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5001/api/customers?startDate=2025-12-01&endDate=2025-12-31",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "api",
+                                "customers"
+                            ],
+                            "query": [
+                                {
+                                    "key": "startDate",
+                                    "value": "2025-12-01",
+                                    "description": "Optional: Filter by nextServiceDueDate >= startDate (YYYY-MM-DD)"
+                                },
+                                {
+                                    "key": "endDate",
+                                    "value": "2025-12-31",
+                                    "description": "Optional: Filter by nextServiceDueDate <= endDate (YYYY-MM-DD)"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
             "name": "Service Centers",
             "item": [
                 {

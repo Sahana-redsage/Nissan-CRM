@@ -7,7 +7,28 @@ export const customerController = {
 
   async getAll(req: AuthRequest, res: Response) {
     try {
+      const { startDate, endDate } = req.query;
+      const where: any = {};
+
+      if (startDate || endDate) {
+        where.nextServiceDueDate = {};
+        if (startDate) {
+          const start = new Date(startDate as string);
+          if (!isNaN(start.getTime())) {
+            where.nextServiceDueDate.gte = start;
+          }
+        }
+        if (endDate) {
+          const end = new Date(endDate as string);
+          if (!isNaN(end.getTime())) {
+            end.setHours(23, 59, 59, 999);
+            where.nextServiceDueDate.lte = end;
+          }
+        }
+      }
+
       const customers = await prisma.customer.findMany({
+        where,
         orderBy: {
           customerName: 'asc',
         },
