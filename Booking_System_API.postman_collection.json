@@ -7,6 +7,49 @@
     },
     "item": [
         {
+            "name": "Customers",
+            "item": [
+                {
+                    "name": "Get All Customers",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5001/api/customers?startDate=2025-12-01&endDate=2025-12-31",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "api",
+                                "customers"
+                            ],
+                            "query": [
+                                {
+                                    "key": "startDate",
+                                    "value": "2025-12-01",
+                                    "description": "Optional: Filter by nextServiceDueDate >= startDate (YYYY-MM-DD)"
+                                },
+                                {
+                                    "key": "endDate",
+                                    "value": "2025-12-31",
+                                    "description": "Optional: Filter by nextServiceDueDate <= endDate (YYYY-MM-DD)"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
             "name": "Service Centers",
             "item": [
                 {
@@ -26,7 +69,7 @@
                             "host": [
                                 "localhost"
                             ],
-                            "port": "5000",
+                            "port": "5001",
                             "path": [
                                 "api",
                                 "service-centers"
@@ -52,7 +95,7 @@
                             "host": [
                                 "localhost"
                             ],
-                            "port": "5000",
+                            "port": "5001",
                             "path": [
                                 "api",
                                 "service-centers",
@@ -85,7 +128,7 @@
                             "host": [
                                 "localhost"
                             ],
-                            "port": "5000",
+                            "port": "5001",
                             "path": [
                                 "api",
                                 "service-centers",
@@ -115,6 +158,54 @@
             "name": "Service Appointments",
             "item": [
                 {
+                    "name": "Get All Appointments",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5001/api/service-appointments?startDate=2025-12-01&endDate=2025-12-31&sortBy=slot&order=desc",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "api",
+                                "service-appointments"
+                            ],
+                            "query": [
+                                {
+                                    "key": "startDate",
+                                    "value": "2025-12-01",
+                                    "description": "Optional: Start date (YYYY-MM-DD)"
+                                },
+                                {
+                                    "key": "endDate",
+                                    "value": "2025-12-31",
+                                    "description": "Optional: End date (YYYY-MM-DD)"
+                                },
+                                {
+                                    "key": "sortBy",
+                                    "value": "slot",
+                                    "description": "Optional: slot or createdAt"
+                                },
+                                {
+                                    "key": "order",
+                                    "value": "desc",
+                                    "description": "Optional: asc or desc"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
                     "name": "Create Service Appointment",
                     "request": {
                         "method": "POST",
@@ -140,7 +231,7 @@
                             "host": [
                                 "localhost"
                             ],
-                            "port": "5000",
+                            "port": "5001",
                             "path": [
                                 "api",
                                 "service-appointments"
@@ -166,7 +257,7 @@
                             "host": [
                                 "localhost"
                             ],
-                            "port": "5000",
+                            "port": "5001",
                             "path": [
                                 "api",
                                 "service-appointments",
@@ -208,7 +299,7 @@
                             "host": [
                                 "localhost"
                             ],
-                            "port": "5000",
+                            "port": "5001",
                             "path": [
                                 "api",
                                 "service-appointments",
@@ -250,7 +341,7 @@
                             "host": [
                                 "localhost"
                             ],
-                            "port": "5000",
+                            "port": "5001",
                             "path": [
                                 "api",
                                 "service-appointments",
@@ -284,7 +375,7 @@
                             "host": [
                                 "localhost"
                             ],
-                            "port": "5000",
+                            "port": "5001",
                             "path": [
                                 "api",
                                 "service-appointments",
@@ -318,7 +409,7 @@
                             "host": [
                                 "localhost"
                             ],
-                            "port": "5000",
+                            "port": "5001",
                             "path": [
                                 "api",
                                 "customers",
@@ -366,7 +457,7 @@
                             "host": [
                                 "localhost"
                             ],
-                            "port": "5000",
+                            "port": "5001",
                             "path": [
                                 "api",
                                 "callback-requests"
@@ -392,7 +483,7 @@
                             "host": [
                                 "localhost"
                             ],
-                            "port": "5000",
+                            "port": "5001",
                             "path": [
                                 "api",
                                 "callback-requests"
@@ -425,7 +516,7 @@
                             "host": [
                                 "localhost"
                             ],
-                            "port": "5000",
+                            "port": "5001",
                             "path": [
                                 "api",
                                 "customers",
@@ -468,7 +559,7 @@
                             "host": [
                                 "localhost"
                             ],
-                            "port": "5000",
+                            "port": "5001",
                             "path": [
                                 "api",
                                 "callback-requests",
@@ -481,6 +572,93 @@
                                 }
                             ]
                         }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Appointment Analytics",
+            "item": [
+                {
+                    "name": "Get Service Analytics",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5001/api/customers/service-analytics?startDate=2025-12-01&endDate=2025-12-31",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "api",
+                                "customers",
+                                "service-analytics"
+                            ],
+                            "query": [
+                                {
+                                    "key": "startDate",
+                                    "value": "2025-12-01",
+                                    "description": "Optional: Start date (YYYY-MM-DD)"
+                                },
+                                {
+                                    "key": "endDate",
+                                    "value": "2025-12-31",
+                                    "description": "Optional: End date (YYYY-MM-DD)"
+                                }
+                            ]
+                        },
+                        "description": "Consolidated analytics including scheduled (due), contacted (who & when), and booked appointments."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Call Logs",
+            "item": [
+                {
+                    "name": "Manual Call Log",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"customerId\": 1,\n  \"telecallerId\": 1,\n  \"callDate\": \"2025-12-19T10:00:00Z\",\n  \"callStatus\": \"connected\",\n  \"callDuration\": 120,\n  \"notes\": \"Strong interest in major service next week\",\n  \"followUpRequired\": true,\n  \"followUpDate\": \"2025-12-22\",\n  \"serviceBooked\": false\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/api/calls/manual-log",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "api",
+                                "calls",
+                                "manual-log"
+                            ]
+                        },
+                        "description": "Manually log a call that wasn't tracked via Twilio."
                     },
                     "response": []
                 }

@@ -3,6 +3,7 @@ import { serviceAppointmentController } from '../controllers/serviceAppointmentC
 
 const router = Router();
 router.post('/', serviceAppointmentController.createAppointment);
+router.get('/', serviceAppointmentController.getAllAppointments);
 router.get('/:id', serviceAppointmentController.getAppointmentById);
 router.put('/:id', serviceAppointmentController.updateAppointment);
 router.put('/:id/reschedule', serviceAppointmentController.rescheduleAppointment);

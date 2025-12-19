@@ -237,6 +237,62 @@ export const serviceAppointmentController = {
                 message: 'Failed to fetch customer appointments'
             });
         }
+    },
+
+    async getAllAppointments(req: AuthRequest, res: Response) {
+        try {
+            const { startDate, endDate, sortBy = 'slot', order = 'desc' } = req.query;
+
+            const where: any = {};
+
+            if (startDate || endDate) {
+                where.slot = {};
+                if (startDate) {
+                    const start = new Date(startDate as string);
+                    if (!isNaN(start.getTime())) {
+                        where.slot.gte = start;
+                    }
+                }
+                if (endDate) {
+                    const end = new Date(endDate as string);
+                    if (!isNaN(end.getTime())) {
+                        end.setHours(23, 59, 59, 999);
+                        where.slot.lte = end;
+                    }
+                }
+            }
+
+            const appointments = await prisma.serviceAppointment.findMany({
+                where,
+                include: {
+                    customer: {
+                        select: {
+                            customerName: true,
+                            phone: true,
+                            vehicleNumber: true,
+                            vehicleMake: true,
+                            vehicleModel: true
+                        }
+                    },
+                    serviceCenter: true
+                },
+                orderBy: {
+                    [sortBy as string]: order as 'asc' | 'desc'
+                }
+            });
+
+            res.json({
+                success: true,
+                data: appointments,
+                count: appointments.length
+            });
+        } catch (error: any) {
+            logger.error('Error fetching all appointments:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch appointments'
+            });
+        }
     }
 };
 

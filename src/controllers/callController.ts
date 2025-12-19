@@ -8,6 +8,8 @@ export const callController = {
     try {
       const {
         customerId,
+        telecallerId,
+        callDate,
         callStatus,
         callDuration,
         notes,
@@ -17,10 +19,11 @@ export const callController = {
         bookingDate,
       } = req.body;
 
-      if (!customerId || !callStatus) {
+      // Validate required fields for manual log
+      if (!customerId || !telecallerId || !callStatus || callDuration === undefined) {
         return res.status(400).json({
           success: false,
-          message: 'Customer ID and call status are required',
+          message: 'Customer ID, Telecaller ID, call status, and call duration are required for manual logging',
         });
       }
 
@@ -35,12 +38,25 @@ export const callController = {
         });
       }
 
+      // Verify telecaller exists
+      const telecaller = await prisma.telecaller.findUnique({
+        where: { id: telecallerId }
+      });
+
+      if (!telecaller) {
+        return res.status(404).json({
+          success: false,
+          message: 'Telecaller not found'
+        });
+      }
+
       const callLog = await prisma.callLog.create({
         data: {
           customerId,
-          telecallerId: req.telecaller!.id,
+          telecallerId,
+          callDate: callDate ? new Date(callDate) : new Date(),
           callStatus,
-          callDuration: callDuration || null,
+          callDuration,
           notes: notes || null,
           followUpRequired: followUpRequired || false,
           followUpDate: followUpDate ? new Date(followUpDate) : null,
