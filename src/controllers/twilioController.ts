@@ -154,10 +154,12 @@ export const twilioController = {
           start.transcription({
             statusCallbackUrl: `${config.baseUrl}/api/calls/transcription-status`,
             statusCallbackMethod: 'POST',
-            track: 'both_tracks', // Transcribe both caller and callee
-            partialResults: false, // Only send final results
-            languageCode: 'en-US',
-          });
+            track: 'both_tracks',
+            partialResults: false,
+            languageCode: 'en-IN', // Optimized for Indian accents
+            enableAutomaticLanguageDetection: true, // Detects Hindi, Telugu, etc.
+            hints: 'service, booking, nissan, car, maintenance, appointment, hello, namaste, ac, coolant, raavali, pampandi, eppudu, address', // Added common Telugu phonetic hints
+          } as any);
         }
 
         // 🔊 Dial with recording
@@ -196,22 +198,26 @@ export const twilioController = {
             statusCallbackMethod: 'POST',
             track: 'both_tracks',
             partialResults: false,
-            languageCode: 'en-US',
-          });
+            languageCode: 'en-IN',
+            enableAutomaticLanguageDetection: true,
+            hints: 'service, booking, nissan, car, maintenance, appointment, hello, namaste, raavali, pampandi', // Added Telugu hints
+          } as any);
         }
 
-        const dial = twiml.dial({
-          callerId: config.twilioNumber, // Show Twilio number as caller ID
+        const dialOptions: any = {
+          callerId: config.twilioNumber,
           record: 'record-from-ringing',
           answerOnBridge: true
-        });
+        };
 
-        // Add callback for recording
         if (config.baseUrl && config.baseUrl.startsWith('http')) {
-          (dial as any).recordingStatusCallback = `${config.baseUrl}/api/calls/recording-status`;
-          (dial as any).recordingStatusCallbackMethod = 'POST';
+          dialOptions.recordingStatusCallback = `${config.baseUrl}/api/calls/recording-status`;
+          dialOptions.recordingStatusCallbackMethod = 'POST';
+          dialOptions.action = `${config.baseUrl}/api/calls/status`;
+          dialOptions.method = 'POST';
         }
 
+        const dial = twiml.dial(dialOptions);
         dial.number(config.forwardToNumber);
       } else {
         console.warn("⚠️ FORWARD_TO_PHONE not set in .env. Falling back to voicemail.");
