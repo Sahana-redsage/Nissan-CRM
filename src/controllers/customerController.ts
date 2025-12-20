@@ -305,4 +305,75 @@ export const customerController = {
     }
   },
 
+  async create(req: AuthRequest, res: Response) {
+    try {
+      const {
+        customerName,
+        email,
+        phone,
+        alternatePhone,
+        address,
+        city,
+        state,
+        pincode,
+        vehicleNumber,
+        vehicleMake,
+        vehicleModel,
+        vehicleYear,
+        purchaseDate,
+        lastServiceDate,
+        nextServiceDueDate,
+        totalMileage,
+        prefServiceCenter
+      } = req.body;
+
+      // Basic validation
+      if (!customerName || !phone || !vehicleNumber || !vehicleMake || !vehicleModel || !nextServiceDueDate) {
+        return res.status(400).json({
+          success: false,
+          message: 'Missing required fields',
+        });
+      }
+
+      const customer = await prisma.customer.create({
+        data: {
+          customerName,
+          email,
+          phone,
+          alternatePhone,
+          address,
+          city,
+          state,
+          pincode,
+          vehicleNumber,
+          vehicleMake,
+          vehicleModel,
+          vehicleYear: vehicleYear ? parseInt(vehicleYear.toString()) : null,
+          purchaseDate: purchaseDate ? new Date(purchaseDate) : null,
+          lastServiceDate: lastServiceDate ? new Date(lastServiceDate) : null,
+          nextServiceDueDate: new Date(nextServiceDueDate),
+          totalMileage: totalMileage ? parseInt(totalMileage.toString()) : 0,
+          prefServiceCenter: prefServiceCenter ? parseInt(prefServiceCenter.toString()) : null,
+        },
+      });
+
+      res.status(201).json({
+        success: true,
+        data: customer,
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        return res.status(400).json({
+          success: false,
+          message: 'A customer with this vehicle number already exists',
+        });
+      }
+      logger.error('Error creating customer:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create customer',
+      });
+    }
+  },
+
 };
