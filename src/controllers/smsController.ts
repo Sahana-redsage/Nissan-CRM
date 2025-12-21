@@ -135,7 +135,7 @@ export const smsController = {
         );
 
         // Append Call to Action and Link manually
-        const personalizedMessage = baseMessage + `\n\nBook urgently here: ${uiLink}\n\nYour Service Advisor`;
+        const personalizedMessage = baseMessage + `\n\nBook here: ${uiLink}\n\nYour Service Advisor`;
 
         console.log(personalizedMessage);
 
