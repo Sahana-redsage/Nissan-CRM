@@ -188,7 +188,7 @@ async function processEmailSend(insightId: number, telecallerId: number) {
 
     // 4. Append Insight Link
     const linkRef = `email_${Date.now()}_${customer.id}`;
-    const insightUrl = `https://nissancall-fe.vercel.app/customer-view/${customer.id}?source=email&ref=${linkRef}`;
+    const insightUrl = `https://crm.autoclad.com/customer-view/${customer.id}?source=email&ref=${linkRef}`;
 
     const linkHtml = `
         <br><br>
