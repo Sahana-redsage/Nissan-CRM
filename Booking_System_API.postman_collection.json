@@ -46,6 +46,41 @@
                         }
                     },
                     "response": []
+                },
+                {
+                    "name": "Create Customer",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"customerName\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"1234567890\",\n  \"alternatePhone\": \"0987654321\",\n  \"address\": \"123 Main St\",\n  \"city\": \"Springfield\",\n  \"state\": \"IL\",\n  \"pincode\": \"62701\",\n  \"vehicleNumber\": \"ABC-123\",\n  \"vehicleMake\": \"Nissan\",\n  \"vehicleModel\": \"Altima\",\n  \"vehicleYear\": 2022,\n  \"purchaseDate\": \"2022-01-01\",\n  \"lastServiceDate\": \"2023-01-01\",\n  \"nextServiceDueDate\": \"2024-01-01\",\n  \"totalMileage\": 15000,\n  \"prefServiceCenter\": 1\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/api/customers",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "api",
+                                "customers"
+                            ]
+                        }
+                    },
+                    "response": []
                 }
             ]
         },
