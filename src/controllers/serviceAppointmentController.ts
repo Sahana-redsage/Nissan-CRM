@@ -322,8 +322,8 @@ async function sendAppointmentNotification(
 
     // Generate Dashboard Link
     const linkRef = `appt_${type}_${Date.now()}_${customer.id}`;
-    const dashboardUrl = `https://nissancall-fe.vercel.app/customer-view/${customer.id}?source=email&ref=${linkRef}`;
-    const smsUrl = `https://nissancall-fe.vercel.app/customer-view/${customer.id}?source=sms&ref=${linkRef}`;
+    const dashboardUrl = `https://crm.autoclad.com/customer-view/${customer.id}?source=email&ref=${linkRef}`;
+    const smsUrl = `https://crm.autoclad.com/customer-view/${customer.id}?source=sms&ref=${linkRef}`;
 
     // Construct Message Content
     let subject = '';
