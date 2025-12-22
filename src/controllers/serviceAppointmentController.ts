@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
+import { AppointmentStatus } from '@prisma/client';
 import prisma from '../config/database';
 import { logger } from '../utils/logger';
 import nodemailer from 'nodemailer';
@@ -126,7 +127,8 @@ export const serviceAppointmentController = {
                     serviceType,
                     reason,
                     odometer,
-                    status
+                    status: status,
+                    isCancelled: status ? (status === 'cancelled' ? true : false) : undefined
                 }
             });
 
@@ -161,7 +163,8 @@ export const serviceAppointmentController = {
                 where: { id: appointmentId },
                 data: {
                     slot: new Date(slot),
-                    status: 'pending'
+                    status: 'pending',
+                    isCancelled: false // Reset cancellation if rescheduling
                 }
             });
 
@@ -242,7 +245,7 @@ export const serviceAppointmentController = {
 
     async getAllAppointments(req: AuthRequest, res: Response) {
         try {
-            const { startDate, endDate, sortBy = 'slot', order = 'desc', status } = req.query;
+            const { startDate, endDate, sortBy = 'slot', order = 'desc', status, customerName, vehicleNumber, vinNumber, phone } = req.query;
 
             const where: any = {};
 
@@ -265,6 +268,28 @@ export const serviceAppointmentController = {
 
             if (status) {
                 where.status = status as AppointmentStatus;
+            }
+
+            // Customer Filters
+            if (customerName || vehicleNumber || vinNumber || phone) {
+                where.customer = {};
+
+                if (customerName) {
+                    where.customer.customerName = { contains: customerName as string, mode: 'insensitive' };
+                }
+                if (vehicleNumber) {
+                    where.customer.vehicleNumber = { contains: vehicleNumber as string, mode: 'insensitive' };
+                }
+                if (vinNumber) {
+                    where.customer.vinNumber = { contains: vinNumber as string, mode: 'insensitive' };
+                }
+                if (phone) {
+                    // Search in both phone and alternatePhone
+                    where.customer.OR = [
+                        { phone: { contains: phone as string, mode: 'insensitive' } },
+                        { alternatePhone: { contains: phone as string, mode: 'insensitive' } }
+                    ];
+                }
             }
 
             const appointments = await prisma.serviceAppointment.findMany({
@@ -374,7 +399,10 @@ export const serviceAppointmentController = {
 
             const appointment = await prisma.serviceAppointment.update({
                 where: { id: appointmentId },
-                data: { status }
+                data: {
+                    status,
+                    isCancelled: status === 'cancelled' ? true : false
+                }
             });
 
             if (status === 'confirmed') {

@@ -107,4 +107,47 @@ export const callController = {
       });
     }
   },
+
+  async getAllLogs(req: AuthRequest, res: Response) {
+    try {
+      const callLogs = await prisma.callLog.findMany({
+        orderBy: { callDate: 'desc' },
+        include: {
+          telecaller: {
+            select: {
+              fullName: true,
+              username: true,
+            },
+          },
+          customer: {
+            select: {
+              customerName: true,
+              phone: true,
+              email: true,
+              vehicleNumber: true
+            }
+          }
+        },
+      });
+
+      const formattedLogs = callLogs.map(log => ({
+        ...log,
+        // Format recording URL to be playable via our proxy endpoint
+        recordingUrl: log.recordingSid ? `/api/calls/recordings/${log.recordingSid}/play` : null,
+        // Ensure transcript is easily accessible
+        transcript: log.transcript || null
+      }));
+
+      res.json({
+        success: true,
+        data: formattedLogs,
+      });
+    } catch (error: any) {
+      logger.error('Error fetching all call logs:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch all call logs',
+      });
+    }
+  },
 };
