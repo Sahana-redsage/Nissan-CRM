@@ -1,7 +1,9 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 import { config } from '../config/env';
 
-const genAI = new GoogleGenerativeAI(config.gemini.apiKey);
+const openai = new OpenAI({
+  apiKey: config.openai.apiKey,
+});
 
 interface EmotionAnalysis {
   primary_emotion: 'very_satisfied' | 'satisfied' | 'neutral' | 'dissatisfied' | 'very_dissatisfied';
@@ -60,40 +62,22 @@ Return ONLY valid JSON (NO markdown blocks, NO explanatory text):
 
 Consider the rating, whether service was completed on first visit, and the tone of comments.`;
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      generationConfig: {
-        temperature: 0.5,
-        topP: 0.9,
-        topK: 40,
-        maxOutputTokens: 2048,
-      },
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' },
+      temperature: 0.5,
+      max_tokens: 2048,
     });
 
-    const result = await model.generateContent(prompt);
-    let rawResponse = result.response.text();
-
-    // Clean up response
-    rawResponse = rawResponse
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim();
+    const rawResponse = completion.choices[0].message.content || '{}';
 
     let emotionAnalysis: EmotionAnalysis;
     try {
       emotionAnalysis = JSON.parse(rawResponse) as EmotionAnalysis;
     } catch (error) {
-      const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          emotionAnalysis = JSON.parse(jsonMatch[0]) as EmotionAnalysis;
-        } catch (parseError) {
-          console.error('Failed to parse emotion analysis:', rawResponse);
-          throw new Error('Failed to parse emotion analysis from AI');
-        }
-      } else {
-        throw new Error('No valid JSON found in AI response');
-      }
+      console.error('Failed to parse emotion JSON:', rawResponse);
+      throw new Error('Failed to parse emotion analysis from AI');
     }
 
     // Calculate sentiment score based on rating, emotion, and context
@@ -148,32 +132,19 @@ Return ONLY valid JSON (NO markdown blocks, NO explanatory text):
 
 Determine urgency based on rating and whether service was completed correctly on first visit.`;
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      generationConfig: {
-        temperature: 0.4,
-        topP: 0.9,
-        topK: 40,
-        maxOutputTokens: 1024,
-      },
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' },
+      temperature: 0.4,
+      max_tokens: 1024,
     });
 
-    const result = await model.generateContent(prompt);
-    let rawResponse = result.response.text();
-
-    // Clean up response
-    rawResponse = rawResponse
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim();
+    const rawResponse = completion.choices[0].message.content || '{}';
 
     try {
       return JSON.parse(rawResponse) as IntentAnalysis;
     } catch (error) {
-      const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]) as IntentAnalysis;
-      }
       console.error('Failed to parse intent analysis:', rawResponse);
       throw new Error('Failed to parse intent analysis from AI');
     }

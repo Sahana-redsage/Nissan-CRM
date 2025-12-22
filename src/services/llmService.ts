@@ -1,7 +1,9 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 import { config } from '../config/env';
 
-const genAI = new GoogleGenerativeAI(config.gemini.apiKey);
+const openai = new OpenAI({
+  apiKey: config.openai.apiKey,
+});
 
 interface VehicleData {
   vehicleMake: string;
@@ -75,58 +77,31 @@ Keep each section to 2-3 items max. Be concise. Use ₹ for costs.`;
   ): Promise<{ insights: ServiceInsights; rawResponse: string }> {
     const prompt = this.constructPrompt(vehicleData, pdfTexts);
 
-    // Use Gemini 2.5 Flash for fast, cost-effective generation
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash-lite',
-      generationConfig: {
-        temperature: 0.7,
-        topP: 0.95,
-        topK: 64,
-        maxOutputTokens: 8192,
-      },
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are an expert automotive service advisor.' },
+        { role: 'user', content: prompt }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+      max_tokens: 4096, // Plenty for JSON
     });
 
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-
-    // Log finish reason to debug why generation stopped
-    console.log('=== GENERATION METADATA ===');
-    console.log('Finish Reason:', response.candidates?.[0]?.finishReason);
-    console.log('Safety Ratings:', JSON.stringify(response.candidates?.[0]?.safetyRatings, null, 2));
-    console.log('=== END METADATA ===');
-
-    let rawResponse = response.text();
+    const rawResponse = completion.choices[0].message.content || '{}';
 
     // Log the raw response for debugging
     console.log('=== RAW LLM RESPONSE ===');
     console.log(rawResponse);
-    console.log('Response length:', rawResponse.length, 'characters');
     console.log('=== END RAW RESPONSE ===');
-
-    // Clean up response - remove markdown code blocks if present
-    rawResponse = rawResponse
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim();
 
     // Parse the JSON response
     let insights: ServiceInsights;
     try {
       insights = JSON.parse(rawResponse) as ServiceInsights;
     } catch (error) {
-      // If parsing fails, try to extract JSON from the response
-      const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          insights = JSON.parse(jsonMatch[0]) as ServiceInsights;
-        } catch (parseError) {
-          console.error('Failed to parse extracted JSON:', jsonMatch[0]);
-          throw new Error(`Failed to parse AI response as JSON. Response: ${rawResponse.substring(0, 200)}...`);
-        }
-      } else {
-        console.error('No JSON found in response:', rawResponse);
-        throw new Error(`Failed to parse AI response as JSON. Response: ${rawResponse.substring(0, 200)}...`);
-      }
+      console.error('Failed to parse JSON:', rawResponse);
+      throw new Error(`Failed to parse AI response as JSON.`);
     }
 
     return { insights, rawResponse };
@@ -153,32 +128,19 @@ Return this exact JSON structure:
 
 If a field is not found, use null. Extract only what's clearly stated in the document.`;
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash-lite',
-      generationConfig: {
-        temperature: 0.3,
-        topP: 0.95,
-        topK: 40,
-        maxOutputTokens: 1024,
-      },
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' },
+      temperature: 0.3,
+      max_tokens: 1024,
     });
 
-    const result = await model.generateContent(prompt);
-    let rawResponse = result.response.text();
-
-    // Clean up response
-    rawResponse = rawResponse
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim();
+    const rawResponse = completion.choices[0].message.content || '{}';
 
     try {
       return JSON.parse(rawResponse) as CustomerDetails;
     } catch (error) {
-      const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]) as CustomerDetails;
-      }
       console.error('Failed to parse customer details:', rawResponse);
       return {};
     }
@@ -210,16 +172,14 @@ Instructions:
    - Do not include the actual link text or URL.
 `;
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash-lite',
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 2048,
-      },
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      max_tokens: 1024,
     });
 
-    const result = await model.generateContent(prompt);
-    let emailBody = result.response.text();
+    let emailBody = completion.choices[0].message.content || '';
 
     // Clean up if markdown code blocks are present
     emailBody = emailBody.replace(/```html\n?/g, '').replace(/```\n?/g, '').trim();
@@ -243,22 +203,17 @@ Instructions:
 6. Return PLAIN TEXT.
 7. Do NOT include any links or "Book now" text. (This will be added separately).`;
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash-lite',
-      generationConfig: {
-        temperature: 0.4,
-        topP: 0.95,
-        topK: 40,
-        maxOutputTokens: 500,
-      },
-    });
-
     try {
-      const result = await model.generateContent(prompt);
-      return result.response.text().trim();
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.4,
+        max_tokens: 500,
+      });
+      return completion.choices[0].message.content?.trim() || '';
     } catch (error) {
       console.error('Error generating WhatsApp summary:', error);
-      return `Hi ${customerName || 'valsued Customer'} 👋,\n\nWe analyzed your ${vehicleData.vehicleMake} ${vehicleData.vehicleModel} service history. Key updates available.`;
+      return `Hi ${customerName || 'Valued Customer'} 👋,\n\nWe analyzed your ${vehicleData.vehicleMake} ${vehicleData.vehicleModel} service history. Key updates available.`;
     }
   },
 
@@ -284,24 +239,16 @@ Return ONLY valid JSON:
   "score": number (-1.0 to 1.0)
 }`;
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 200,
-      },
-    });
-
     try {
-      const result = await model.generateContent(prompt);
-      let rawResponse = result.response.text();
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+        temperature: 0.3,
+        max_tokens: 256,
+      });
 
-      // Clean up response
-      rawResponse = rawResponse
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?/g, '')
-        .trim();
-
+      const rawResponse = completion.choices[0].message.content || '{}';
       const parsed = JSON.parse(rawResponse);
 
       // Combine category and emotion for the existing string field
