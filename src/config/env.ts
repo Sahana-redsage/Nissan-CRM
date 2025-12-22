@@ -9,7 +9,7 @@ interface Config {
   jwtExpiry: string;
   frontendUrl: string;
   backendUrl: string;
-  gemini: {
+  openai: {
     apiKey: string;
   };
   r2: {
@@ -39,8 +39,8 @@ export const config: Config = {
   baseUrl: process.env.BASE_URL || 'http://localhost:5001',
   jwtExpiry: process.env.JWT_EXPIRY || '7d',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
-  gemini: {
-    apiKey: process.env.GEMINI_API_KEY || '',
+  openai: {
+    apiKey: process.env.OPENAI_API_KEY || '',
   },
   email: {
     user: process.env.EMAIL_USER || '',

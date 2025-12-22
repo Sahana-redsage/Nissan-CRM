@@ -155,10 +155,6 @@ export const serviceAppointmentController = {
             const appointmentId = parseInt(req.params.id);
             const { slot } = req.body;
 
-            // Note: User said "for rescheduling appoingmrnts, we will just use the update endpoint"
-            // But they also listed "PUT /api/service-appointments/{appointment_id}/reschedule"
-            // I'll implement this as a specific endpoint for clarity, but it essentially does an update.
-
             const appointment = await prisma.serviceAppointment.update({
                 where: { id: appointmentId },
                 data: {
