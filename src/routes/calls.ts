@@ -18,4 +18,7 @@ router.post("/transcription-status", twilioController.transcriptionStatus);
 // Manual Log
 router.post("/manual-log", authMiddleware, callController.log);
 
+// Get All Logs
+router.get("/all-logs", authMiddleware, callController.getAllLogs);
+
 export default router;
