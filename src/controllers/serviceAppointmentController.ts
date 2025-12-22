@@ -341,7 +341,7 @@ export const serviceAppointmentController = {
             const appointment = await prisma.serviceAppointment.update({
                 where: { id: appointmentId },
                 data: {
-                    status: 'booked'
+                    status: 'confirmed'
                 }
             });
 
@@ -373,7 +373,7 @@ export const serviceAppointmentController = {
                 data: { status }
             });
 
-            if (status === 'booked') {
+            if (status === 'confirmed') {
                 sendAppointmentNotification('create', appointment.id).catch(console.error);
             } else if (status === 'cancelled') {
                 sendAppointmentNotification('cancel', appointment.id).catch(console.error);
