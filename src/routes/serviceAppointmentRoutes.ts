@@ -12,6 +12,7 @@ router.put('/:id', serviceAppointmentController.updateAppointment);
 router.post('/:id/confirm', serviceAppointmentController.confirmAppointment);
 router.put('/:id/status', serviceAppointmentController.updateAppointmentStatus);
 router.get('/:id', serviceAppointmentController.getAppointmentById);
+router.get('/', serviceAppointmentController.getAllAppointments);
 
 
 export default router;

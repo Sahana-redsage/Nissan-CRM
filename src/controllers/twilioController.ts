@@ -60,57 +60,30 @@ export const twilioController = {
     const VoiceResponse = twilio.twiml.VoiceResponse;
     const twiml = new VoiceResponse();
 
-    // Log the entire request for debugging
-    console.log("📡 Voice Webhook Hit - Full Request Body:", JSON.stringify(req.body, null, 2));
-    console.log("📡 Voice Webhook Hit - Query Params:", JSON.stringify(req.query, null, 2));
+    console.log("📡 Voice Webhook Hit - Body:", JSON.stringify(req.body, null, 2));
+    console.log("📡 Voice Webhook Hit - Query:", JSON.stringify(req.query, null, 2));
 
-    // Twilio sends form-urlencoded body
+    // Twilio sends application/x-www-form-urlencoded
     const { From, To, CallSid } = req.body;
 
-    // Extract customerId from query params (passed from frontend connect() call)
-    let customerId = req.query.customerId ? Number(req.query.customerId) : null;
-
-    // Clean up phone number (remove newlines, spaces, etc.)
-    let toNumber = To || req.body.to || req.body.Phone || req.body.phone || req.query.To || '';
+    // 🔐 ONLY trust explicit customerId from frontend
+    const customerId = req.query.customerId
+      ? Number(req.query.customerId)
+      : null;
+    console.log('customer id== ', customerId);
+    // Normalize To number
+    let toNumber = To || req.body.to || req.query.To || '';
     toNumber = toNumber.toString().trim();
 
-    console.log(`📞 Call Details:`);
-    console.log(`   CallSid: ${CallSid}`);
-    console.log(`   From: ${From}`);
-    console.log(`   To: ${To}`);
-    console.log(`   Cleaned toNumber: ${toNumber}`);
+    console.log(`📞 Call Details`);
+    console.log(`   CallSid   : ${CallSid}`);
+    console.log(`   From      : ${From}`);
+    console.log(`   To        : ${toNumber}`);
+    console.log(`   customerId: ${customerId ?? 'NOT PROVIDED'}`);
 
-    // If customerId is missing, try to lookup customer by phone number
-    if (!customerId && toNumber) {
-      try {
-        const digits = toNumber.replace(/\D/g, '');
-        const last10 = digits.slice(-10);
-
-        console.log(`🔍 Searching for customer with phone containing: ${last10}`);
-
-        const customer = await prisma.customer.findFirst({
-          where: {
-            OR: [
-              { phone: { contains: last10 } },
-              { alternatePhone: { contains: last10 } }
-            ]
-          }
-        });
-
-        if (customer) {
-          customerId = customer.id;
-          console.log(`🔍 Found Customer ID ${customerId} (${customer.customerName}) via phone lookup`);
-        } else {
-          console.warn(`⚠️ No customer found in DB for phone: ${toNumber} (digits: ${digits})`);
-        }
-      } catch (lookupError) {
-        console.error("❌ Error looking up customer by phone:", lookupError);
-      }
-    }
-
-    console.log(`   Final CustomerId for Log: ${customerId}`);
-
-    // Create CallLog record as soon as call starts so transcriptions have a record to update
+    // ======================================================
+    // 🗃️ Create CallLog ONLY if customerId is provided
+    // ======================================================
     if (CallSid && customerId) {
       try {
         const existingLog = await prisma.callLog.findUnique({
@@ -118,115 +91,119 @@ export const twilioController = {
         });
 
         if (!existingLog) {
-          // Find first active telecaller or use a default
-          const firstTelecaller = await prisma.telecaller.findFirst({ where: { isActive: true } });
+          const telecaller = await prisma.telecaller.findFirst({
+            where: { isActive: true }
+          });
 
-          if (firstTelecaller) {
+          if (!telecaller) {
+            console.error("❌ No active telecaller found");
+          } else {
             await prisma.callLog.create({
               data: {
                 callSid: CallSid,
                 customerId: customerId,
-                telecallerId: firstTelecaller.id,
+                telecallerId: telecaller.id,
                 callStatus: 'ringing',
                 callDate: new Date()
               }
             });
-            console.log(`✅ Created initial CallLog for CallSid: ${CallSid}`);
-          } else {
-            console.error("❌ No active telecaller found to assign the call log.");
+            console.log(`✅ CallLog created → CallSid=${CallSid}, customerId=${customerId}`);
           }
         }
       } catch (dbError) {
-        console.error("❌ Error creating initial CallLog:", dbError);
+        console.error("❌ Error creating CallLog:", dbError);
       }
-    } else if (CallSid && !customerId) {
-      console.warn(`⚠️ Cannot create CallLog for Sid ${CallSid}: No customerId matched.`);
+    } else if (!customerId) {
+      console.warn(`⚠️ customerId missing — CallSid ${CallSid} will not be mapped`);
     }
 
-    // Logic: Browser (client:...) calling a Phone Number (+...)
+    // ======================================================
+    // 🌐 OUTBOUND CALL (Browser → Phone)
+    // ======================================================
     if (From && From.startsWith("client:")) {
-      if (toNumber && toNumber.length > 5) { // Basic sanity check
-        console.log(`✅ Dialing ${toNumber} with CallerId: ${config.twilioNumber}`);
-
-        // 📝 Start Real-Time Transcription BEFORE the dial
-        if (config.baseUrl && config.baseUrl.startsWith('http')) {
-          const start = twiml.start();
-          start.transcription({
-            statusCallbackUrl: `${config.baseUrl}/api/calls/transcription-status`,
-            statusCallbackMethod: 'POST',
-            track: 'both_tracks', // Transcribe both caller and callee
-            partialResults: false, // Only send final results
-            languageCode: 'en-US',
-          });
-        }
-
-        // 🔊 Dial with recording
-        const dialOptions: any = {
-          callerId: config.twilioNumber,
-          answerOnBridge: true,
-          record: 'record-from-ringing-dual',
-        };
-
-        if (config.baseUrl && config.baseUrl.startsWith('http')) {
-          dialOptions.recordingStatusCallback = `${config.baseUrl}/api/calls/recording-status`;
-          dialOptions.recordingStatusCallbackMethod = 'POST';
-
-          // Also add action callback to track call completion status
-          dialOptions.action = `${config.baseUrl}/api/calls/status`;
-          dialOptions.method = 'POST';
-        }
-
-        const dial = twiml.dial(dialOptions);
-        dial.number(toNumber);
+      if (!toNumber || toNumber.length < 6) {
+        twiml.say("Invalid phone number. Please try again.");
       } else {
-        console.log(`❌ No valid phone number provided. To=${toNumber}`);
-        twiml.say("Sorry, no valid phone number was provided. Please try again.");
-      }
-    }
-    else {
-      // Logic: Inbound Call (Phone -> Twilio Number)
-      console.log(`📞 Inbound Call from ${From} -> Forwarding to ${config.forwardToNumber}`);
+        console.log(`📤 Outbound call → ${toNumber}`);
 
-      if (config.forwardToNumber) {
-        // 📝 Start Real-Time Transcription BEFORE the dial
-        if (config.baseUrl && config.baseUrl.startsWith('http')) {
+        // 📝 Start real-time transcription BEFORE dial
+        if (config.baseUrl?.startsWith("http")) {
           const start = twiml.start();
           start.transcription({
             statusCallbackUrl: `${config.baseUrl}/api/calls/transcription-status`,
-            statusCallbackMethod: 'POST',
-            track: 'both_tracks',
+            statusCallbackMethod: "POST",
+            track: "both_tracks",
             partialResults: false,
-            languageCode: 'en-US',
+            languageCode: "en-US"
           });
         }
 
         const dial = twiml.dial({
-          callerId: config.twilioNumber, // Show Twilio number as caller ID
-          record: 'record-from-ringing',
-          answerOnBridge: true
+          callerId: config.twilioNumber,
+          answerOnBridge: true,
+          record: "record-from-ringing-dual",
+          recordingStatusCallback: config.baseUrl
+            ? `${config.baseUrl}/api/calls/recording-status`
+            : undefined,
+          recordingStatusCallbackMethod: "POST",
+          action: config.baseUrl
+            ? `${config.baseUrl}/api/calls/status`
+            : undefined,
+          method: "POST"
         });
 
-        // Add callback for recording
-        if (config.baseUrl && config.baseUrl.startsWith('http')) {
-          (dial as any).recordingStatusCallback = `${config.baseUrl}/api/calls/recording-status`;
-          (dial as any).recordingStatusCallbackMethod = 'POST';
+        dial.number(toNumber);
+      }
+    }
+
+    // ======================================================
+    // 📥 INBOUND CALL (Phone → Twilio Number)
+    // ======================================================
+    else {
+      console.log(`📥 Inbound call from ${From}`);
+
+      if (config.forwardToNumber) {
+
+        // 📝 Start transcription
+        if (config.baseUrl?.startsWith("http")) {
+          const start = twiml.start();
+          start.transcription({
+            statusCallbackUrl: `${config.baseUrl}/api/calls/transcription-status`,
+            statusCallbackMethod: "POST",
+            track: "both_tracks",
+            partialResults: false,
+            languageCode: "en-US"
+          });
         }
+
+        const dial = twiml.dial({
+          callerId: config.twilioNumber,
+          record: "record-from-ringing",
+          answerOnBridge: true,
+          recordingStatusCallback: config.baseUrl
+            ? `${config.baseUrl}/api/calls/recording-status`
+            : undefined,
+          recordingStatusCallbackMethod: "POST"
+        });
 
         dial.number(config.forwardToNumber);
       } else {
-        console.warn("⚠️ FORWARD_TO_PHONE not set in .env. Falling back to voicemail.");
-        twiml.say("Welcome. connecting to the agent.");
+        console.warn("⚠️ FORWARD_TO_PHONE not set");
+        twiml.say("Thank you for calling. Please leave a message.");
         twiml.record();
       }
     }
 
+    // ======================================================
+    // 📤 Respond TwiML
+    // ======================================================
     const twimlString = twiml.toString();
-    console.log("📤 Sending TwiML Response:", twimlString);
+    console.log("📤 Sending TwiML:", twimlString);
 
-    // Must return text/xml
     res.type("text/xml");
     res.send(twimlString);
   },
+
 
   // ======================================================
   // 4️⃣ Get Call Logs from Twilio
