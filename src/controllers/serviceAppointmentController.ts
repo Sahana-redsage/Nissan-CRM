@@ -89,7 +89,8 @@ export const serviceAppointmentController = {
                         select: {
                             customerName: true,
                             phone: true,
-                            vehicleNumber: true
+                            vehicleNumber: true,
+                            vinNumber: true
                         }
                     },
                     serviceCenter: true
@@ -296,6 +297,7 @@ export const serviceAppointmentController = {
                             customerName: true,
                             phone: true,
                             vehicleNumber: true,
+                            vinNumber: true,
                             vehicleMake: true,
                             vehicleModel: true
                         }
@@ -334,6 +336,7 @@ export const serviceAppointmentController = {
                             customerName: true,
                             phone: true,
                             vehicleNumber: true,
+                            vinNumber: true,
                             vehicleMake: true,
                             vehicleModel: true
                         }
