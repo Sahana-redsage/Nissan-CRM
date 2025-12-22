@@ -67,10 +67,10 @@ export const twilioController = {
     const { From, To, CallSid } = req.body;
 
     // 🔐 ONLY trust explicit customerId from frontend
-    const customerId = req.query.customerId
-      ? Number(req.query.customerId)
+    const customerId = req.body.customerId
+      ? Number(req.body.customerId)
       : null;
-    console.log('customer id== ', customerId);
+    console.log('customer id== ', req.body.customerId);
     // Normalize To number
     let toNumber = To || req.body.to || req.query.To || '';
     toNumber = toNumber.toString().trim();
