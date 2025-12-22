@@ -242,7 +242,7 @@ export const serviceAppointmentController = {
 
     async getAllAppointments(req: AuthRequest, res: Response) {
         try {
-            const { startDate, endDate, sortBy = 'slot', order = 'desc' } = req.query;
+            const { startDate, endDate, sortBy = 'slot', order = 'desc', status } = req.query;
 
             const where: any = {};
 
@@ -261,6 +261,10 @@ export const serviceAppointmentController = {
                         where.slot.lte = end;
                     }
                 }
+            }
+
+            if (status) {
+                where.status = status as AppointmentStatus;
             }
 
             const appointments = await prisma.serviceAppointment.findMany({
