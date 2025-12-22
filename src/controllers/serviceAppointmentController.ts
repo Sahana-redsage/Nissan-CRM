@@ -42,7 +42,7 @@ export const serviceAppointmentController = {
                         serviceType,
                         odometer,
                         isPreferred,
-                        status: 'booked' // Initial status
+                        status: 'pending' // Initial status
                     }
                 });
 
@@ -160,7 +160,8 @@ export const serviceAppointmentController = {
             const appointment = await prisma.serviceAppointment.update({
                 where: { id: appointmentId },
                 data: {
-                    slot: new Date(slot)
+                    slot: new Date(slot),
+                    status: 'pending'
                 }
             });
 
@@ -241,7 +242,7 @@ export const serviceAppointmentController = {
 
     async getAllAppointments(req: AuthRequest, res: Response) {
         try {
-            const { startDate, endDate, sortBy = 'slot', order = 'desc' } = req.query;
+            const { startDate, endDate, sortBy = 'slot', order = 'desc', status } = req.query;
 
             const where: any = {};
 
@@ -260,6 +261,10 @@ export const serviceAppointmentController = {
                         where.slot.lte = end;
                     }
                 }
+            }
+
+            if (status) {
+                where.status = status as AppointmentStatus;
             }
 
             const appointments = await prisma.serviceAppointment.findMany({
@@ -291,6 +296,102 @@ export const serviceAppointmentController = {
             res.status(500).json({
                 success: false,
                 message: 'Failed to fetch appointments'
+            });
+        }
+    },
+
+    async getPendingAppointments(req: AuthRequest, res: Response) {
+        try {
+            const appointments = await prisma.serviceAppointment.findMany({
+                where: {
+                    status: 'pending',
+                    isCancelled: false
+                },
+                include: {
+                    customer: {
+                        select: {
+                            customerName: true,
+                            phone: true,
+                            vehicleNumber: true,
+                            vehicleMake: true,
+                            vehicleModel: true
+                        }
+                    },
+                    serviceCenter: true
+                },
+                orderBy: {
+                    slot: 'asc'
+                }
+            });
+
+            res.json({
+                success: true,
+                data: appointments,
+                count: appointments.length
+            });
+        } catch (error: any) {
+            logger.error('Error fetching pending appointments:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch pending appointments'
+            });
+        }
+    },
+
+    async confirmAppointment(req: AuthRequest, res: Response) {
+        try {
+            const appointmentId = parseInt(req.params.id);
+
+            const appointment = await prisma.serviceAppointment.update({
+                where: { id: appointmentId },
+                data: {
+                    status: 'confirmed'
+                }
+            });
+
+            // Send 'create' (confirmed) notification
+            sendAppointmentNotification('create', appointment.id).catch((err: any) =>
+                logger.error('Failed to send appointment confirmation notification:', err)
+            );
+
+            res.json({
+                success: true,
+                data: appointment
+            });
+        } catch (error: any) {
+            logger.error('Error confirming appointment:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to confirm appointment'
+            });
+        }
+    },
+
+    async updateAppointmentStatus(req: AuthRequest, res: Response) {
+        try {
+            const appointmentId = parseInt(req.params.id);
+            const { status } = req.body;
+
+            const appointment = await prisma.serviceAppointment.update({
+                where: { id: appointmentId },
+                data: { status }
+            });
+
+            if (status === 'confirmed') {
+                sendAppointmentNotification('create', appointment.id).catch(console.error);
+            } else if (status === 'cancelled') {
+                sendAppointmentNotification('cancel', appointment.id).catch(console.error);
+            }
+
+            res.json({
+                success: true,
+                data: appointment
+            });
+        } catch (error: any) {
+            logger.error('Error updating appointment status:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to update appointment status'
             });
         }
     }

@@ -1,12 +1,18 @@
 import { Router } from 'express';
 import { serviceAppointmentController } from '../controllers/serviceAppointmentController';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 router.post('/', serviceAppointmentController.createAppointment);
-router.get('/', serviceAppointmentController.getAllAppointments);
-router.get('/:id', serviceAppointmentController.getAppointmentById);
-router.put('/:id', serviceAppointmentController.updateAppointment);
-router.put('/:id/reschedule', serviceAppointmentController.rescheduleAppointment);
 router.put('/:id/cancel', serviceAppointmentController.cancelAppointment);
+router.put('/:id/reschedule', serviceAppointmentController.rescheduleAppointment);
+router.use(authMiddleware);
+router.get('/pending', serviceAppointmentController.getPendingAppointments); // Must be before /:id
+router.put('/:id', serviceAppointmentController.updateAppointment);
+router.post('/:id/confirm', serviceAppointmentController.confirmAppointment);
+router.put('/:id/status', serviceAppointmentController.updateAppointmentStatus);
+router.get('/:id', serviceAppointmentController.getAppointmentById);
+router.get('/', serviceAppointmentController.getAllAppointments);
+
 
 export default router;

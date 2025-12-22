@@ -263,15 +263,26 @@ Instructions:
   },
 
   async generateSentimentAnalysis(transcript: string): Promise<{ sentiment: string; score: number }> {
-    const prompt = `Analyze the sentiment of the following call transcript between a telecaller and a customer. 
-Return ONLY valid JSON (NO markdown blocks, NO explanatory text):
-{
-  "sentiment": "Positive/Negative/Neutral",
-  "score": number (where 1.0 is very positive and -1.0 is very negative)
-}
+    const prompt = `Act as a Quality Assurance Specialist for a customer service team. Analyze the following call transcript between a telecaller (Agent) and a customer.
+
+Your goal is to determine the Customer's sentiment and emotional state accurately.
+
+Instructions:
+1. **Analyze Tone & Urgency**: Look for keywords indicating frustration, gratitude, anger, confusion, happiness, or urgency.
+2. **Avoid Defaulting to Neutral**: Only classify as "Neutral" if the conversation is purely transactional and devoid of any emotion. Most calls have some underlying sentiment.
+3. **Determine Specific Emotion**: Identify the dominant emotion (e.g., Frustrated, Satisfied, Confused, Urgent, Grateful, Annoyed, Skeptical).
+4. **Assign Sentiment Category**: Positive, Negative, Neutral, or Mixed.
+5. **Assign Score**: -1.0 (Very Negative) to 1.0 (Very Positive).
 
 TRANSCRIPT:
-${transcript}`;
+${transcript.substring(0, 5000)}
+
+Return ONLY valid JSON:
+{
+  "sentiment": "Positive/Negative/Neutral/Mixed",
+  "emotion": "Specific Emotion (e.g. Frustrated, Satisfied)",
+  "score": number (-1.0 to 1.0)
+}`;
 
     const model = genAI.getGenerativeModel({
       model: 'gemini-1.5-flash',
@@ -292,8 +303,16 @@ ${transcript}`;
         .trim();
 
       const parsed = JSON.parse(rawResponse);
+
+      // Combine category and emotion for the existing string field
+      // e.g. "Negative (Frustrated)"
+      let sentimentString = parsed.sentiment || 'Neutral';
+      if (parsed.emotion && parsed.emotion !== 'None') {
+        sentimentString = `${sentimentString} (${parsed.emotion})`;
+      }
+
       return {
-        sentiment: parsed.sentiment || 'Neutral',
+        sentiment: sentimentString,
         score: typeof parsed.score === 'number' ? parsed.score : 0,
       };
     } catch (error) {

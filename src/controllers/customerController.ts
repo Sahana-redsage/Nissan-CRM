@@ -314,7 +314,8 @@ export const customerController = {
         lastServiceDate,
         nextServiceDueDate,
         totalMileage,
-        prefServiceCenter
+        prefServiceCenter,
+        vinNumber
       } = req.body;
 
       // Basic validation
@@ -344,6 +345,7 @@ export const customerController = {
           nextServiceDueDate: new Date(nextServiceDueDate),
           totalMileage: totalMileage ? parseInt(totalMileage.toString()) : 0,
           prefServiceCenter: prefServiceCenter ? parseInt(prefServiceCenter.toString()) : null,
+          vinNumber: vinNumber || null,
         },
       });
 
@@ -353,6 +355,13 @@ export const customerController = {
       });
     } catch (error: any) {
       if (error.code === 'P2002') {
+        const target = error.meta?.target;
+        if (target && Array.isArray(target) && target.includes('vin_number')) {
+          return res.status(400).json({
+            success: false,
+            message: 'A customer with this VIN number already exists',
+          });
+        }
         return res.status(400).json({
           success: false,
           message: 'A customer with this vehicle number already exists',
@@ -362,6 +371,92 @@ export const customerController = {
       res.status(500).json({
         success: false,
         message: 'Failed to create customer',
+      });
+    }
+  },
+
+  async update(req: AuthRequest, res: Response) {
+    try {
+      const customerId = parseInt(req.params.id);
+      const {
+        customerName,
+        email,
+        phone,
+        alternatePhone,
+        address,
+        city,
+        state,
+        pincode,
+        vehicleNumber,
+        vehicleMake,
+        vehicleModel,
+        vehicleYear,
+        purchaseDate,
+        lastServiceDate,
+        nextServiceDueDate,
+        totalMileage,
+        prefServiceCenter,
+        vinNumber
+      } = req.body;
+
+      // Check if customer exists
+      const existingCustomer = await prisma.customer.findUnique({
+        where: { id: customerId }
+      });
+
+      if (!existingCustomer) {
+        return res.status(404).json({
+          success: false,
+          message: 'Customer not found'
+        });
+      }
+
+      const customer = await prisma.customer.update({
+        where: { id: customerId },
+        data: {
+          customerName,
+          email,
+          phone,
+          alternatePhone,
+          address,
+          city,
+          state,
+          pincode,
+          vehicleNumber,
+          vehicleMake,
+          vehicleModel,
+          vehicleYear: vehicleYear ? parseInt(vehicleYear.toString()) : undefined,
+          purchaseDate: purchaseDate ? new Date(purchaseDate) : undefined,
+          lastServiceDate: lastServiceDate ? new Date(lastServiceDate) : undefined,
+          nextServiceDueDate: nextServiceDueDate ? new Date(nextServiceDueDate) : undefined,
+          totalMileage: totalMileage ? parseInt(totalMileage.toString()) : undefined,
+          prefServiceCenter: prefServiceCenter ? parseInt(prefServiceCenter.toString()) : undefined,
+          vinNumber,
+        },
+      });
+
+      res.json({
+        success: true,
+        data: customer,
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        const target = error.meta?.target;
+        if (target && Array.isArray(target) && target.includes('vin_number')) {
+          return res.status(400).json({
+            success: false,
+            message: 'A customer with this VIN number already exists',
+          });
+        }
+        return res.status(400).json({
+          success: false,
+          message: 'A customer with this vehicle number already exists',
+        });
+      }
+      logger.error('Error updating customer:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update customer',
       });
     }
   },

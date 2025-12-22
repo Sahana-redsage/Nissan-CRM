@@ -37,6 +37,7 @@ model Customer {
   state              String?
   pincode            String?
   vehicleNumber      String            @unique @map("vehicle_number")
+  vinNumber          String?           @unique @map("vin_number")
   vehicleMake        String            @map("vehicle_make")
   vehicleModel       String            @map("vehicle_model")
   vehicleYear        Int?              @map("vehicle_year")
@@ -237,6 +238,13 @@ model ServiceCenter {
   @@map("service_centers")
 }
 
+enum AppointmentStatus {
+  pending
+  confirmed
+  completed
+  cancelled
+}
+
 model ServiceAppointment {
   id            Int      @id @default(autoincrement())
   customerId    Int      @map("customer_id")
@@ -247,7 +255,7 @@ model ServiceAppointment {
   reason        String?
   serviceType   String?  @map("service_type")
   odometer      Int?
-  status        String?
+  status        AppointmentStatus @default(pending)
   isCancelled   Boolean  @default(false) @map("is_cancelled")
 
   customer      Customer      @relation(fields: [customerId], references: [id])

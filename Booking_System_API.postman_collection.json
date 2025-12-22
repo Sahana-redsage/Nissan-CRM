@@ -65,7 +65,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"customerName\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"1234567890\",\n  \"alternatePhone\": \"0987654321\",\n  \"address\": \"123 Main St\",\n  \"city\": \"Springfield\",\n  \"state\": \"IL\",\n  \"pincode\": \"62701\",\n  \"vehicleNumber\": \"ABC-123\",\n  \"vehicleMake\": \"Nissan\",\n  \"vehicleModel\": \"Altima\",\n  \"vehicleYear\": 2022,\n  \"purchaseDate\": \"2022-01-01\",\n  \"lastServiceDate\": \"2023-01-01\",\n  \"nextServiceDueDate\": \"2024-01-01\",\n  \"totalMileage\": 15000,\n  \"prefServiceCenter\": 1\n}"
+                            "raw": "{\n  \"customerName\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"1234567890\",\n  \"alternatePhone\": \"0987654321\",\n  \"address\": \"123 Main St\",\n  \"city\": \"Springfield\",\n  \"state\": \"IL\",\n  \"pincode\": \"62701\",\n  \"vehicleNumber\": \"ABC-123\",\n  \"vinNumber\": \"VN1234567890\",\n  \"vehicleMake\": \"Nissan\",\n  \"vehicleModel\": \"Altima\",\n  \"vehicleYear\": 2022,\n  \"purchaseDate\": \"2022-01-01\",\n  \"lastServiceDate\": \"2023-01-01\",\n  \"nextServiceDueDate\": \"2024-01-01\",\n  \"totalMileage\": 15000,\n  \"prefServiceCenter\": 1\n}"
                         },
                         "url": {
                             "raw": "http://localhost:5001/api/customers",
@@ -77,6 +77,81 @@
                             "path": [
                                 "api",
                                 "customers"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Customer by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5001/api/customers/:id",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "api",
+                                "customers",
+                                ":id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Customer",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"customerName\": \"John Doe Updated\",\n  \"email\": \"john.updated@example.com\",\n  \"vinNumber\": \"VN1234567899\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/api/customers/:id",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "api",
+                                "customers",
+                                ":id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1"
+                                }
                             ]
                         }
                     },
@@ -192,6 +267,33 @@
         {
             "name": "Service Appointments",
             "item": [
+                {
+                    "name": "Get Pending Appointments",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5001/api/service-appointments/pending",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "api",
+                                "service-appointments",
+                                "pending"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
                 {
                     "name": "Get All Appointments",
                     "request": {
@@ -343,6 +445,83 @@
                             "variable": [
                                 {
                                     "key": "appointment_id",
+                                    "value": "1"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Confirm Appointment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5001/api/service-appointments/:id/confirm",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "api",
+                                "service-appointments",
+                                ":id",
+                                "confirm"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Appointment Status",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"status\": \"completed\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/api/service-appointments/:id/status",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "api",
+                                "service-appointments",
+                                ":id",
+                                "status"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
                                     "value": "1"
                                 }
                             ]
