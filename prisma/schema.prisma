@@ -37,6 +37,7 @@ model Customer {
   state              String?
   pincode            String?
   vehicleNumber      String            @unique @map("vehicle_number")
+  vinNumber          String?           @unique @map("vin_number")
   vehicleMake        String            @map("vehicle_make")
   vehicleModel       String            @map("vehicle_model")
   vehicleYear        Int?              @map("vehicle_year")
